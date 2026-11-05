@@ -1,0 +1,71 @@
+name: Flutter native builds
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'flutter_app/**'
+      - 'worker/src/index.js'
+      - '.github/workflows/flutter-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Android shell and overlay app source
+        shell: bash
+        run: |
+          flutter create --platforms=android --org com.gxforge --project-name brujula_crm /tmp/brujula_shell
+          cp -R /tmp/brujula_shell/android flutter_app/
+          cp /tmp/brujula_shell/.metadata flutter_app/.metadata
+          cp -R flutter_app/lib /tmp/brujula_shell/
+          cp flutter_app/pubspec.yaml /tmp/brujula_shell/pubspec.yaml
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('/tmp/brujula_shell/android/app/src/main/AndroidManifest.xml')
+          s = p.read_text()
+          s = s.replace('<manifest ', '<manifest ', 1)
+          marker = 'xmlns:android="http://schemas.android.com/apk/res/android">'
+          s = s.replace(marker, marker + '\n    <uses-permission android:name="android.permission.INTERNET"/>', 1)
+          p.write_text(s)
+          PY
+          cd /tmp/brujula_shell
+          flutter pub get
+          flutter analyze
+          flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Brujula-Flutter-Android-APK
+          path: /tmp/brujula_shell/build/app/outputs/flutter-apk/app-release.apk
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Generate Windows shell and overlay app source
+        shell: pwsh
+        run: |
+          flutter create --platforms=windows --org com.gxforge --project-name brujula_crm $env:TEMP\brujula_shell
+          Copy-Item flutter_app\lib $env:TEMP\brujula_shell\lib -Recurse -Force
+          Copy-Item flutter_app\pubspec.yaml $env:TEMP\brujula_shell\pubspec.yaml -Force
+          Set-Location $env:TEMP\brujula_shell
+          flutter pub get
+          flutter analyze
+          flutter build windows --release
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath $env:GITHUB_WORKSPACE\Brujula-Flutter-Windows.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Brujula-Flutter-Windows-PC
+          path: Brujula-Flutter-Windows.zip
