@@ -116,6 +116,7 @@ jobs:
 
   publish-release:
     name: Publicar Release con APK y EXE
+    if: startsWith(github.ref, 'refs/tags/')
     needs: [build-android, build-pc]
     runs-on: ubuntu-latest
     steps:
