@@ -116,7 +116,7 @@ class CRMStore {
     c.nextDate = d.toISOString().slice(0, 10); c.updatedAt = new Date().toISOString(); this.logActivity(c.name, `Seguimiento agendado para ${c.nextDate}`); this.save(); return c.nextDate;
   }
   upsertService(svc) {
-    const clean = { id: svc.id || cryptoId('svc'), name: String(svc.name || '').trim(), category: String(svc.category || 'Servicio').trim(), price: Math.max(0, Number(svc.price || 0) || 0), currency: String(svc.currency || 'USD').trim(), deliveryDays: Math.max(1, Number(svc.deliveryDays || 3) || 3), summary: String(svc.summary || '').trim(), deliverables: Array.isArray(svc.deliverables) ? svc.deliverables.filter(Boolean) : String(svc.deliverables || '').split('\n').map((s) => s.trim()).filter(Boolean) };
+    const clean = { id: svc.id || cryptoId('svc'), name: String(svc.name || '').trim(), category: String(svc.category || 'Servicio').trim(), price: Math.max(0, Number(svc.price || 0) || 0), currency: String(svc.currency || 'USD').trim(), deliveryDays: Math.max(1, Number(svc.deliveryDays || 3) || 3), summary: String(svc.summary || '').trim(), deliverables: Array.isArray(svc.deliverables) ? svc.deliverables.filter(Boolean) : String(svc.deliverables || '').split('\n').map((s) => s.trim()).filter(Boolean), isRecurring: Boolean(svc.isRecurring) };
     const exists = this.services.some((s) => s.id === clean.id);
     this.services = exists ? this.services.map((s) => (s.id === clean.id ? clean : s)) : [clean, ...this.services];
     this.logActivity('Catálogo', `${exists ? 'Editado' : 'Añadido'} paquete "${clean.name}"`); this.save(); return clean;

@@ -1,260 +1,62 @@
 import { $, $$, ICONS, STAGES, buildWhatsAppUrl, esc, formatDate, initials, norm, openExternalUrl, showToast } from '../core/utils.js';
 import { computeLeadScore } from '../data/project-catalog.js';
+import { isGoingCold } from '../data/cadence.js';
+import { duplicatesBanner } from './audit-panel.js';
+import { routeGroupHTML } from './field-tools.js';
 
 export class ClientsView {
-  constructor(store, handlers) {
-    this.store = store;
-    this.handlers = handlers;
-    this.viewMode = 'table';
-    this.sortBy = 'updatedAt';
-    this.sortDir = 'desc';
-    this.selectedIds = new Set();
-    this.bindStaticEvents();
-  }
-
+  constructor(store, handlers) { this.store = store; this.handlers = handlers; this.viewMode = 'table'; this.sortBy = 'updatedAt'; this.sortDir = 'desc'; this.selectedIds = new Set(); this.bindStaticEvents(); }
   bindStaticEvents() {
-    ['#search', '#statusFilter', '#provinceFilter', '#projectFilter', '#socialFilter'].forEach((sel) => {
-      $(sel)?.addEventListener(sel === '#search' ? 'input' : 'change', () => this.render());
-    });
-
-    $$('[data-view-mode]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        this.viewMode = btn.dataset.viewMode;
-        $$('[data-view-mode]').forEach((b) => b.classList.toggle('active', b === btn));
-        this.render();
-      });
-    });
-
-    $('#bulkApplyBtn')?.addEventListener('click', () => {
-      const st = $('#bulkStatusSelect').value;
-      if (!st || !this.selectedIds.size) return;
-      const n = this.store.bulkUpdateStatus([...this.selectedIds], st);
-      this.selectedIds.clear();
-      showToast('Actualización en lote', `${n} clientes movidos a ${st}`);
-    });
-
-    $('#bulkDeleteBtn')?.addEventListener('click', () => {
-      if (!this.selectedIds.size) return;
-      if (confirm(`¿Eliminar ${this.selectedIds.size} cliente(s) seleccionados?`)) {
-        const n = this.store.deleteMany([...this.selectedIds]);
-        this.selectedIds.clear();
-        showToast('Registros eliminados', `${n} cliente(s) eliminados`);
-      }
-    });
+    ['#search', '#statusFilter', '#provinceFilter', '#projectFilter', '#socialFilter'].forEach((sel) => $(sel)?.addEventListener(sel === '#search' ? 'input' : 'change', () => this.render()));
+    $$('[data-view-mode]').forEach((btn) => btn.addEventListener('click', () => { this.viewMode = btn.dataset.viewMode; $$('[data-view-mode]').forEach((b) => b.classList.toggle('active', b === btn)); this.render(); }));
+    $('#bulkApplyBtn')?.addEventListener('click', () => { const st = $('#bulkStatusSelect').value; if (!st || !this.selectedIds.size) return; const n = this.store.bulkUpdateStatus([...this.selectedIds], st); this.selectedIds.clear(); showToast('Lote', `${n} movidos a ${st}`); });
+    $('#bulkDeleteBtn')?.addEventListener('click', () => { if (!this.selectedIds.size) return; if (confirm(`¿Eliminar ${this.selectedIds.size} seleccionados?`)) { const n = this.store.deleteMany([...this.selectedIds]); this.selectedIds.clear(); showToast('Eliminados', `${n} clientes`); } });
+    $('#routeToggle')?.addEventListener('change', () => this.render());
   }
-
-  setProvinceFilter(province) {
-    this.renderFilters();
-    const sel = $('#provinceFilter');
-    if (sel) sel.value = province;
-    this.render();
-  }
-
+  setProvinceFilter(province) { this.renderFilters(); const sel = $('#provinceFilter'); if (sel) sel.value = province; this.render(); }
   renderFilters() {
-    const provSel = $('#provinceFilter');
-    if (provSel) {
-      const cur = provSel.value;
-      const provinces = [...new Set(this.store.clients.map((c) => c.province).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
-      provSel.innerHTML = `<option value="">Todas las provincias (${provinces.length})</option>` +
-        provinces.map((p) => `<option value="${esc(p)}" ${p === cur ? 'selected' : ''}>${esc(p)}</option>`).join('');
-    }
-    const projSel = $('#projectFilter');
-    if (projSel) {
-      const curP = projSel.value;
-      const titles = [...new Set(this.store.clients.flatMap((c) => (c.projects || []).map((p) => p.title)).filter(Boolean))];
-      projSel.innerHTML = `<option value="">Todos los proyectos</option>` +
-        `<option value="__has__" ${curP === '__has__' ? 'selected' : ''}>Con proyecto solicitado</option>` +
-        `<option value="__none__" ${curP === '__none__' ? 'selected' : ''}>Sin proyecto aún</option>` +
-        titles.map((t) => `<option value="${esc(t)}" ${t === curP ? 'selected' : ''}>📦 ${esc(t)}</option>`).join('');
-    }
+    const provSel = $('#provinceFilter'); if (provSel) { const cur = provSel.value; const provinces = [...new Set(this.store.clients.map((c) => c.province).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es')); provSel.innerHTML = `<option value="">Todas las provincias (${provinces.length})</option>` + provinces.map((p) => `<option value="${esc(p)}" ${p === cur ? 'selected' : ''}>${esc(p)}</option>`).join(''); }
+    const projSel = $('#projectFilter'); if (projSel) { const curP = projSel.value; const titles = [...new Set(this.store.clients.flatMap((c) => (c.projects || []).map((p) => p.title)).filter(Boolean))]; projSel.innerHTML = `<option value="">Todos los proyectos</option><option value="__has__" ${curP === '__has__' ? 'selected' : ''}>Con proyecto</option><option value="__none__" ${curP === '__none__' ? 'selected' : ''}>Sin proyecto</option>` + titles.map((t) => `<option value="${esc(t)}" ${t === curP ? 'selected' : ''}>📦 ${esc(t)}</option>`).join(''); }
   }
-
   getFilteredClients() {
-    const q = norm($('#search')?.value || '');
-    const st = $('#statusFilter')?.value || '';
-    const prov = $('#provinceFilter')?.value || '';
-    const pf = $('#projectFilter')?.value || '';
-    const soc = norm($('#socialFilter')?.value || '');
-
-    return this.store.clients
-      .filter((c) => {
-        if (st && c.status !== st) return false;
-        if (prov && c.province !== prov) return false;
-        if (pf === '__has__' && !c.desiredProject) return false;
-        if (pf === '__none__' && c.desiredProject) return false;
-        if (pf && pf !== '__has__' && pf !== '__none__' && !(c.projects || []).some((p) => p.title === pf)) return false;
-        if (soc && !norm(c.social).includes(soc)) return false;
-        if (q && !norm([c.name, c.contact, c.phone, c.type, c.province, c.desiredProject, c.requirements, c.evidence].join(' ')).includes(q)) return false;
-        return true;
-      })
-      .sort((a, b) => {
-        const dir = this.sortDir === 'asc' ? 1 : -1;
-        return String(a[this.sortBy] || '').localeCompare(String(b[this.sortBy] || ''), 'es', { numeric: true }) * dir;
-      });
+    const q = norm($('#search')?.value || ''); const st = $('#statusFilter')?.value || ''; const prov = $('#provinceFilter')?.value || ''; const pf = $('#projectFilter')?.value || ''; const soc = norm($('#socialFilter')?.value || '');
+    return this.store.clients.filter((c) => {
+      if (st && c.status !== st) return false; if (prov && c.province !== prov) return false; if (pf === '__has__' && !c.desiredProject) return false; if (pf === '__none__' && c.desiredProject) return false; if (pf && pf !== '__has__' && pf !== '__none__' && !(c.projects || []).some((p) => p.title === pf)) return false; if (soc && !norm(c.social).includes(soc)) return false; if (q && !norm([c.name, c.contact, c.phone, c.type, c.province, c.desiredProject, c.requirements, c.evidence].join(' ')).includes(q)) return false; return true;
+    }).sort((a, b) => { const dir = this.sortDir === 'asc' ? 1 : -1; return String(a[this.sortBy] || '').localeCompare(String(b[this.sortBy] || ''), 'es', { numeric: true }) * dir; });
   }
-
-  render() {
-    this.renderFilters();
-    const list = this.getFilteredClients();
-    const validIds = new Set(this.store.clients.map((c) => c.id));
-    this.selectedIds.forEach((id) => { if (!validIds.has(id)) this.selectedIds.delete(id); });
-
-    $('#tableCount').textContent = `${list.length} de ${this.store.clients.length} cliente${this.store.clients.length === 1 ? '' : 's'}`;
-    const bulkBar = $('#bulkBar');
-    if (bulkBar) {
-      bulkBar.style.display = this.selectedIds.size > 0 ? 'flex' : 'none';
-      $('#bulkCountText').textContent = `${this.selectedIds.size} seleccionado(s)`;
-    }
-
+  render(appState) {
+    this.renderFilters(); const list = this.getFilteredClients(); const validIds = new Set(this.store.clients.map((c) => c.id)); this.selectedIds.forEach((id) => { if (!validIds.has(id)) this.selectedIds.delete(id); });
+    $('#tableCount').textContent = `${list.length} de ${this.store.clients.length} clientes`; const bulkBar = $('#bulkBar'); if (bulkBar) { bulkBar.style.display = this.selectedIds.size > 0 ? 'flex' : 'none'; $('#bulkCountText').textContent = `${this.selectedIds.size} seleccionado(s)`; }
+    // dup banner + route
+    const dupEl = $('#dupBanner'); if (dupEl) { dupEl.innerHTML = duplicatesBanner(this.store, this.handlers); dupEl.querySelectorAll('[data-merge]').forEach((b) => b.onclick = () => { const [k, r] = b.dataset.merge.split('::'); import('../core/ops.js').then((m) => { m.mergeClients(this.store, k, r); showToast('Fusionado', 'Duplicado combinado'); this.render(); }); }); }
+    const routeEl = $('#routeBox'); if (routeEl) { const on = $('#routeToggle')?.checked; routeEl.style.display = on ? 'grid' : 'none'; if (on) routeEl.innerHTML = routeGroupHTML(list); }
     const wrap = $('#clientsContainer');
-    if (!this.store.clients.length) {
-      wrap.innerHTML = `<div class="panel empty-state">
-        <div class="empty-art"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M16 11h6"/></svg></div>
-        <h2>Tu base comercial está lista para empezar</h2>
-        <p>Importa tu archivo Excel (.xlsx o .csv), carga en 1 clic los 35 negocios verificados de Cuba o añade un cliente con su proyecto.</p>
-        <div class="empty-actions">
-          <button class="btn btn-aqua" data-action="seed">Cargar 35 prospectos de Cuba</button>
-          <button class="btn btn-primary" data-action="import">Importar Excel / CSV</button>
-          <button class="btn btn-secondary" data-action="new">Añadir cliente</button>
-        </div>
-      </div>`;
-      return this.bindContainerClicks(wrap, list);
-    }
-
-    if (!list.length) {
-      wrap.innerHTML = `<div class="panel empty-state">
-        <h2>Sin coincidencias con los filtros actuales</h2>
-        <div class="empty-actions"><button class="btn btn-secondary" data-action="clear-filters">Limpiar filtros</button></div>
-      </div>`;
-      return this.bindContainerClicks(wrap, list);
-    }
-
-    if (this.viewMode === 'kanban') this.renderKanban(wrap, list);
-    else this.renderTable(wrap, list);
-    this.bindContainerClicks(wrap, list);
+    if (!this.store.clients.length) { wrap.innerHTML = `<div class="panel empty-state"><div class="empty-art"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M16 11h6"/></svg></div><h2>Base lista</h2><p>Importa Excel/CSV o carga los 35 de Cuba.</p><div class="empty-actions"><button class="btn btn-aqua" data-action="seed">Cargar 35 Cuba</button><button class="btn btn-primary" data-action="import">Importar Excel</button><button class="btn btn-secondary" data-action="new">Añadir cliente</button></div></div>`; return this.bindContainerClicks(wrap, list); }
+    if (!list.length) { wrap.innerHTML = `<div class="panel empty-state"><h2>Sin coincidencias</h2><div class="empty-actions"><button class="btn btn-secondary" data-action="clear-filters">Limpiar filtros</button></div></div>`; return this.bindContainerClicks(wrap, list); }
+    if (this.viewMode === 'kanban') this.renderKanban(wrap, list); else this.renderTable(wrap, list); this.bindContainerClicks(wrap, list);
   }
-
   renderTable(wrap, list) {
-    const allChecked = list.length > 0 && list.every((c) => this.selectedIds.has(c.id));
-    const arrow = (col) => (this.sortBy === col ? (this.sortDir === 'asc' ? ' ↑' : ' ↓') : '');
-    wrap.innerHTML = `<section class="panel" style="overflow:hidden"><div class="table-wrap"><table>
-      <thead><tr>
-        <th style="width:36px"><input type="checkbox" id="checkAllRows" ${allChecked ? 'checked' : ''}></th>
-        <th data-sort="name">Negocio / Temp.${arrow('name')}</th>
-        <th data-sort="province">Provincia${arrow('province')}</th>
-        <th data-sort="desiredProject">Proyecto Solicitado${arrow('desiredProject')}</th>
-        <th>WhatsApp</th>
-        <th data-sort="status">Estado${arrow('status')}</th>
-        <th data-sort="nextDate">Seguimiento${arrow('nextDate')}</th>
-        <th style="text-align:right">Acciones</th>
-      </tr></thead>
-      <tbody>${list.map((c) => {
-        const sc = computeLeadScore(c);
-        return `<tr data-row-id="${esc(c.id)}">
-          <td data-no-open><input type="checkbox" class="row-check" data-id="${esc(c.id)}" ${this.selectedIds.has(c.id) ? 'checked' : ''}></td>
-          <td><div class="client-cell"><div class="client-initial">${esc(initials(c.name))}</div>
-            <div><div class="client-name">${esc(c.name)} <span title="${sc.score} pts (${sc.label})">${sc.icon}</span></div><div class="client-sub">${esc(c.type || 'Sin rubro')}${c.contact ? ' · ' + esc(c.contact) : ''}</div></div>
-          </div></td>
-          <td><div style="font-weight:600">${esc(c.province || '—')}</div><div class="client-sub">${esc(c.address || '')}</div></td>
-          <td>${c.desiredProject
-            ? `<div class="proj-pill" title="${esc(c.desiredProject)}">📦 ${esc(c.desiredProject)}</div><div class="client-sub">${c.value ? `${c.value} ${esc(c.currency)} · ${esc(c.projectStage)}` : esc(c.projectStage)}</div>`
-            : `<span style="color:#94a3b8;font-size:12px">+ Clic para asignar</span>`}</td>
-          <td style="white-space:nowrap;font-weight:600">${esc(c.phone || '—')}</td>
-          <td data-no-open><select class="status-inline st-${esc(c.status)}" data-status-id="${esc(c.id)}">
-            ${STAGES.map((s) => `<option value="${esc(s.id)}" ${s.id === c.status ? 'selected' : ''}>${esc(s.label)}</option>`).join('')}
-          </select></td>
-          <td>${c.nextDate ? esc(formatDate(c.nextDate)) : '<span style="color:#9aa3b4">Sin fecha</span>'}</td>
-          <td data-no-open><div class="row-actions">
-            <button class="icon-btn wa" data-wa="${esc(c.id)}" title="Escribir por WhatsApp">${ICONS.chat}</button>
-            ${c.evidenceUrl ? `<a class="icon-btn" href="${esc(c.evidenceUrl)}" target="_blank" rel="noopener" title="Ver evidencia FB/IG">${ICONS.link}</a>` : ''}
-            <button class="icon-btn" data-edit="${esc(c.id)}" title="Editar cliente y proyecto">${ICONS.edit}</button>
-          </div></td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table></div></section>`;
+    const allChecked = list.length > 0 && list.every((c) => this.selectedIds.has(c.id)); const arrow = (col) => (this.sortBy === col ? (this.sortDir === 'asc' ? ' ↑' : ' ↓') : '');
+    wrap.innerHTML = `<section class="panel" style="overflow:hidden"><div class="table-wrap"><table><thead><tr><th style="width:36px"><input type="checkbox" id="checkAllRows" ${allChecked ? 'checked' : ''}></th><th data-sort="name">Negocio/Temp.${arrow('name')}</th><th data-sort="province">Provincia${arrow('province')}</th><th data-sort="desiredProject">Proyecto${arrow('desiredProject')}</th><th>WA</th><th data-sort="status">Estado${arrow('status')}</th><th data-sort="nextDate">Seguimiento${arrow('nextDate')}</th><th style="text-align:right">Acciones</th></tr></thead><tbody>${list.map((c) => {
+      const sc = computeLeadScore(c); const cold = isGoingCold(c);
+      return `<tr data-row-id="${esc(c.id)}" style="${cold ? 'background:#fff7ed' : ''}"><td data-no-open><input type="checkbox" class="row-check" data-id="${esc(c.id)}" ${this.selectedIds.has(c.id) ? 'checked' : ''}></td><td><div class="client-cell"><div class="client-initial">${esc(initials(c.name))}</div><div><div class="client-name">${esc(c.name)} <span title="${sc.score} pts">${sc.icon}</span> ${cold ? `<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:1px 5px;border-radius:6px">⚠️ ${cold}d</span>` : ''}</div><div class="client-sub">${esc(c.type || 'Sin rubro')}${c.contact ? ' · ' + esc(c.contact) : ''} ${c.audit ? '· 🔍' : ''}</div></div></div></td><td><div style="font-weight:600">${esc(c.province || '—')}</div><div class="client-sub">${esc(c.address || '')}</div></td><td>${c.desiredProject ? `<div class="proj-pill" title="${esc(c.desiredProject)}">📦 ${esc(c.desiredProject)}</div><div class="client-sub">${c.value ? `${c.value} ${esc(c.currency)} · ${esc(c.projectStage)}` : esc(c.projectStage)} ${c.cadence ? `· paso ${c.cadence.step}/4` : ''}</div>` : `<span style="color:#94a3b8;font-size:12px">+ Asignar</span>`}</td><td style="white-space:nowrap;font-weight:600">${esc(c.phone || '—')}</td><td data-no-open><select class="status-inline st-${esc(c.status)}" data-status-id="${esc(c.id)}">${STAGES.map((s) => `<option value="${esc(s.id)}" ${s.id === c.status ? 'selected' : ''}>${esc(s.label)}</option>`).join('')}</select></td><td>${c.nextDate ? esc(formatDate(c.nextDate)) : '<span style="color:#9aa3b4">Sin fecha</span>'}</td><td data-no-open><div class="row-actions"><button class="icon-btn wa" data-wa="${esc(c.id)}">${ICONS.chat}</button>${c.evidenceUrl ? `<a class="icon-btn" href="${esc(c.evidenceUrl)}" target="_blank">${ICONS.link}</a>` : ''}<button class="icon-btn" data-edit="${esc(c.id)}">${ICONS.edit}</button></div></td></tr>`;
+    }).join('')}</tbody></table></div></section>`;
   }
-
   renderKanban(wrap, list) {
     const stages = STAGES.filter((s) => s.id !== 'Descartado' || list.some((c) => c.status === 'Descartado'));
-    wrap.innerHTML = `<div class="kanban-board">${stages.map((st) => {
-      const cards = list.filter((c) => c.status === st.id);
-      return `<div class="kanban-col" data-drop-stage="${esc(st.id)}">
-        <div class="kanban-head">
-          <span style="display:flex;align-items:center;gap:6px"><i class="metric-dot" style="background:${st.color}"></i>${esc(st.label)}</span>
-          <span class="badge st-${esc(st.id)}">${cards.length}</span>
-        </div>
-        ${cards.map((c) => `<article class="kanban-card" draggable="true" data-drag-id="${esc(c.id)}" data-row-id="${esc(c.id)}">
-          <h4>${esc(c.name)}</h4>
-          <p>${esc(c.province || 'Cuba')} · ${esc(c.type || 'Negocio')}</p>
-          ${c.desiredProject ? `<div class="proj-pill" style="margin:4px 0">📦 ${esc(c.desiredProject)}${c.value ? ` · $${c.value}` : ''}</div>` : ''}
-          <div class="kanban-foot">
-            <span style="color:#4a566d;font-weight:600">${esc(c.phone || 'Sin tel.')}</span>
-            <button class="icon-btn wa" data-wa="${esc(c.id)}" title="WhatsApp">${ICONS.chat}</button>
-          </div>
-        </article>`).join('')}
-      </div>`;
-    }).join('')}</div>`;
-
+    wrap.innerHTML = `<div class="kanban-board">${stages.map((st) => { const cards = list.filter((c) => c.status === st.id); return `<div class="kanban-col" data-drop-stage="${esc(st.id)}"><div class="kanban-head"><span style="display:flex;align-items:center;gap:6px"><i class="metric-dot" style="background:${st.color}"></i>${esc(st.label)}</span><span class="badge st-${esc(st.id)}">${cards.length}</span></div>${cards.map((c) => `<article class="kanban-card" draggable="true" data-drag-id="${esc(c.id)}" data-row-id="${esc(c.id)}"><h4>${esc(c.name)} ${isGoingCold(c) ? '⚠️' : ''}</h4><p>${esc(c.province || 'Cuba')} · ${esc(c.type || 'Negocio')}</p>${c.desiredProject ? `<div class="proj-pill" style="margin:4px 0">📦 ${esc(c.desiredProject)}${c.value ? ` · $${c.value}` : ''}</div>` : ''}<div class="kanban-foot"><span style="color:#4a566d;font-weight:600">${esc(c.phone || 'Sin tel.')}</span><button class="icon-btn wa" data-wa="${esc(c.id)}">${ICONS.chat}</button></div></article>`).join('')}</div>`; }).join('')}</div>`;
     $$('[data-drag-id]', wrap).forEach((el) => el.addEventListener('dragstart', (ev) => ev.dataTransfer.setData('text/plain', el.dataset.dragId)));
-    $$('[data-drop-stage]', wrap).forEach((col) => {
-      col.addEventListener('dragover', (ev) => ev.preventDefault());
-      col.addEventListener('drop', (ev) => {
-        ev.preventDefault();
-        const id = ev.dataTransfer.getData('text/plain');
-        if (id) this.store.updateStatus(id, col.dataset.dropStage);
-      });
-    });
+    $$('[data-drop-stage]', wrap).forEach((col) => { col.addEventListener('dragover', (ev) => ev.preventDefault()); col.addEventListener('drop', (ev) => { ev.preventDefault(); const id = ev.dataTransfer.getData('text/plain'); if (id) { if (col.dataset.dropStage === 'Descartado') { import('./audit-panel.js').then((m) => m.promptLossReason(this.store, id)); } this.store.updateStatus(id, col.dataset.dropStage); } }); });
   }
-
   bindContainerClicks(wrap, list) {
-    $('#checkAllRows', wrap)?.addEventListener('change', (e) => {
-      list.forEach((c) => (e.target.checked ? this.selectedIds.add(c.id) : this.selectedIds.delete(c.id)));
-      this.render();
-    });
-
-    wrap.onchange = (e) => {
-      if (e.target.classList.contains('row-check')) {
-        e.target.checked ? this.selectedIds.add(e.target.dataset.id) : this.selectedIds.delete(e.target.dataset.id);
-        this.render();
-      } else if (e.target.dataset.statusId) {
-        this.store.updateStatus(e.target.dataset.statusId, e.target.value);
-        showToast('Estado actualizado', e.target.value);
-      }
-    };
-
+    $('#checkAllRows', wrap)?.addEventListener('change', (e) => { list.forEach((c) => (e.target.checked ? this.selectedIds.add(c.id) : this.selectedIds.delete(c.id))); this.render(); });
+    wrap.onchange = (e) => { if (e.target.classList.contains('row-check')) { e.target.checked ? this.selectedIds.add(e.target.dataset.id) : this.selectedIds.delete(e.target.dataset.id); this.render(); } else if (e.target.dataset.statusId) { const id = e.target.dataset.statusId; const v = e.target.value; if (v === 'Descartado') import('./audit-panel.js').then((m) => m.promptLossReason(this.store, id)); this.store.updateStatus(id, v); showToast('Estado', v); } };
     wrap.onclick = (e) => {
-      const act = e.target.closest('[data-action]')?.dataset.action;
-      if (act) {
-        if (act === 'seed') this.handlers.loadCubaSeed();
-        if (act === 'import') this.handlers.goto('import');
-        if (act === 'new') this.handlers.openForm();
-        if (act === 'clear-filters') {
-          ['#search', '#statusFilter', '#provinceFilter', '#projectFilter', '#socialFilter'].forEach((s) => { if ($(s)) $(s).value = ''; });
-          this.render();
-        }
-        return;
-      }
-      const sortCol = e.target.closest('th[data-sort]')?.dataset.sort;
-      if (sortCol) {
-        this.sortDir = this.sortBy === sortCol && this.sortDir === 'asc' ? 'desc' : 'asc';
-        this.sortBy = sortCol;
-        return this.render();
-      }
-      const waBtn = e.target.closest('[data-wa]');
-      if (waBtn) {
-        e.stopPropagation();
-        const url = buildWhatsAppUrl(this.store.getById(waBtn.dataset.wa)?.phone);
-        return url ? openExternalUrl(url) : showToast('Sin teléfono', 'Añade un móvil primero.', true);
-      }
-      const editBtn = e.target.closest('[data-edit]');
-      if (editBtn) {
-        e.stopPropagation();
-        return this.handlers.openForm(this.store.getById(editBtn.dataset.edit));
-      }
-      if (!e.target.closest('[data-no-open]')) {
-        const row = e.target.closest('[data-row-id]');
-        if (row) this.handlers.openDetail(row.dataset.rowId);
-      }
+      const act = e.target.closest('[data-action]')?.dataset.action; if (act) { if (act === 'seed') this.handlers.loadCubaSeed(); if (act === 'import') this.handlers.goto('import'); if (act === 'new') this.handlers.openForm(); if (act === 'clear-filters') { ['#search', '#statusFilter', '#provinceFilter', '#projectFilter', '#socialFilter'].forEach((s) => { if ($(s)) $(s).value = ''; }); this.render(); } return; }
+      const sortCol = e.target.closest('th[data-sort]')?.dataset.sort; if (sortCol) { this.sortDir = this.sortBy === sortCol && this.sortDir === 'asc' ? 'desc' : 'asc'; this.sortBy = sortCol; return this.render(); }
+      const waBtn = e.target.closest('[data-wa]'); if (waBtn) { e.stopPropagation(); const url = buildWhatsAppUrl(this.store.getById(waBtn.dataset.wa)?.phone); return url ? openExternalUrl(url) : showToast('Sin teléfono', 'Añade móvil.', true); }
+      const editBtn = e.target.closest('[data-edit]'); if (editBtn) { e.stopPropagation(); return this.handlers.openForm(this.store.getById(editBtn.dataset.edit)); }
+      if (!e.target.closest('[data-no-open]')) { const row = e.target.closest('[data-row-id]'); if (row) this.handlers.openDetail(row.dataset.rowId); }
     };
   }
 }
