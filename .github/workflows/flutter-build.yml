@@ -78,7 +78,7 @@ jobs:
         shell: pwsh
         run: |
           flutter create --platforms=windows --org com.gxforge --project-name brujula_crm $env:TEMP\brujula_shell
-          Copy-Item flutter_app\lib $env:TEMP\brujula_shell\lib -Recurse -Force
+          Copy-Item flutter_app\lib\* $env:TEMP\brujula_shell\lib -Recurse -Force
           Copy-Item flutter_app\pubspec.yaml $env:TEMP\brujula_shell\pubspec.yaml -Force
           Set-Location $env:TEMP\brujula_shell
           Remove-Item test -Recurse -Force -ErrorAction SilentlyContinue
