@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../clients/client_repository.dart';
 import '../projects/project_repository.dart';
 import '../clients/client_record.dart';
@@ -47,7 +48,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _message(String text) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text))); }
   Future<void> _backupExport() async {
     try {
-      final data = {'format': 'brujula-backup-v1', 'createdAt': DateTime.now().toIso8601String(), 'clients': (await repo.load()).map((x) => x.toJson()).toList(), 'projects': (await projectRepo.load()).map((x) => x.toJson()).toList()};
+      final prefs = await SharedPreferences.getInstance();
+      final legacyJson = prefs.getString('brujula.flutter.legacyBackup.v1');
+      final data = {'format': 'brujula-backup-v1', 'createdAt': DateTime.now().toIso8601String(), 'clients': (await repo.load()).map((x) => x.toJson()).toList(), 'projects': (await projectRepo.load()).map((x) => x.toJson()).toList(), if (legacyJson != null) 'legacyBackup': jsonDecode(legacyJson)};
       await FilePicker.platform.saveFile(fileName: 'brujula-respaldo.json', type: FileType.custom, allowedExtensions: ['json'], bytes: Uint8List.fromList(utf8.encode(const JsonEncoder.withIndent('  ').convert(data))));
       _message('Respaldo exportado.');
     } catch (e) { _message('No se pudo exportar el respaldo: $e'); }
@@ -58,12 +61,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final bytes = picked?.files.single.bytes;
       if (!mounted || bytes == null) return;
       final data = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-      if (data['format'] != 'brujula-backup-v1' || data['clients'] is! List || data['projects'] is! List) throw Exception('El formato del respaldo no es válido.');
-      final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text('Restaurar respaldo'), content: const Text('Esta acción reemplazará los clientes y proyectos actuales de este dispositivo.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Reemplazar datos'))]));
-      if (ok != true) return;
-      await repo.save((data['clients'] as List).map((e) => ClientRecord.fromJson(Map<String, dynamic>.from(e as Map))).toList());
-      await projectRepo.save((data['projects'] as List).map((e) => ProjectRecord.fromJson(Map<String, dynamic>.from(e as Map))).toList());
-      _message('Respaldo restaurado en este dispositivo.');
+      final isFlutter = data['format'] == 'brujula-backup-v1' && data['clients'] is List && data['projects'] is List;
+      final isLegacy = data['version'] == 3 && data['clients'] is List;
+      if (!isFlutter && !isLegacy) throw Exception('El archivo no es un respaldo Brújula compatible.');
+      final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text('Restaurar respaldo'), content: const Text('Se reemplazarán los clientes y proyectos locales. Los datos antiguos aún no migrados quedarán guardados en el respaldo para evitar perderlos.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Reemplazar datos'))]));
+      if (ok != true || !mounted) return;
+      final importedClients = (data['clients'] as List).map((e) => ClientRecord.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+      final importedProjects = <ProjectRecord>[];
+      if (isFlutter) {
+        importedProjects.addAll((data['projects'] as List).map((e) => ProjectRecord.fromJson(Map<String, dynamic>.from(e as Map))));
+      } else {
+        for (final raw in data['clients'] as List) {
+          final client = Map<String, dynamic>.from(raw as Map);
+          for (final item in (client['projects'] as List? ?? [])) {
+            final project = Map<String, dynamic>.from(item as Map);
+            importedProjects.add(ProjectRecord.fromJson({...project, 'id': project['id'] ?? '${client['id']}-${importedProjects.length}', 'clientId': client['id'] ?? '', 'clientName': client['name'] ?? '', 'value': project['value'] ?? project['price'] ?? 0, 'updatedAt': project['updatedAt'] ?? client['updatedAt'] ?? DateTime.now().toIso8601String()}));
+          }
+        }
+      }
+      await repo.save(importedClients);
+      await projectRepo.save(importedProjects);
+      await repo.saveDeletedIds(<String>{});
+      await projectRepo.saveDeletedIds(<String>{});
+      final prefs = await SharedPreferences.getInstance();
+      final legacy = isLegacy ? data : data['legacyBackup'];
+      if (legacy != null) await prefs.setString('brujula.flutter.legacyBackup.v1', jsonEncode(legacy));
+      _message('Respaldo restaurado: ${importedClients.length} clientes y ${importedProjects.length} proyectos.');
     } catch (e) { _message('No se pudo restaurar el respaldo: $e'); }
   }
 
@@ -94,7 +117,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ],
     ]))),
     const SizedBox(height: 12),
-    Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Respaldo local', style: Theme.of(context).textTheme.titleMedium), const SizedBox(height: 6), const Text('Exporta o restaura los clientes y proyectos como archivo JSON. El archivo no incluye credenciales.'), const SizedBox(height: 10), Wrap(spacing: 10, children: [OutlinedButton.icon(onPressed: _backupExport, icon: const Icon(Icons.download_outlined), label: const Text('Exportar respaldo')), OutlinedButton.icon(onPressed: _backupImport, icon: const Icon(Icons.restore), label: const Text('Restaurar respaldo'))])]))),
+    Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Respaldo local', style: Theme.of(context).textTheme.titleMedium), const SizedBox(height: 6), const Text('Exporta o restaura datos en JSON. También acepta respaldos versión 3 del CRM anterior y conserva sus campos no migrados. No incluye credenciales.'), const SizedBox(height: 10), Wrap(spacing: 10, children: [OutlinedButton.icon(onPressed: _backupExport, icon: const Icon(Icons.download_outlined), label: const Text('Exportar respaldo')), OutlinedButton.icon(onPressed: _backupImport, icon: const Icon(Icons.restore), label: const Text('Restaurar respaldo'))])]))),
     const SizedBox(height: 12),
     Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Privacidad', style: Theme.of(context).textTheme.titleMedium), const SizedBox(height: 6), const Text('La app inicia vacía. Tus registros se almacenan en este dispositivo; la sincronización sube los clientes a la cuenta cuando la activas.')]))),
   ]);
