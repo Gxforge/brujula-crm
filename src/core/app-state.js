@@ -20,7 +20,7 @@ class AppState {
     this.theme = this.load(KEYS.theme, 'light');
     this.snaps = this.load(KEYS.snaps, []);
     this.notif = this.load(KEYS.notif, { enabled: false });
-    this.sync = this.load(KEYS.sync, { endpoint: '', token: '', lastSync: '', enabled: false });
+    this.sync = this.load(KEYS.sync, { endpoint: 'https://brujula-crm-sync.brujulacrm6207.workers.dev/sync', token: '', lastSync: '', enabled: false });
     this.listeners = new Set();
     this.applyTheme();
   }

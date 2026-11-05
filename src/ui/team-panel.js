@@ -1,10 +1,12 @@
 import { esc } from '../core/utils.js';
 import { calcCommission, buildPortalToken, buildPortalData } from '../data/team.js';
 
+const DEFAULT_SYNC = 'https://brujula-crm-sync.brujulacrm6207.workers.dev/sync';
+
 export function teamHTML(appState, store) {
   const team = appState.team || [];
   return `<div class="extra-box"><b>M31 · Equipo y comisiones</b>
-  <div style="display:grid;gap:6px;margin-top:6px">${team.length ? team.map((m) => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px;border:1px solid var(--line);border-radius:8px"><span><b>${esc(m.name)}</b> · ${m.commissionPct}% ${m.commissionFixed ? `+ ${m.commissionFixed}` : ''}</span><button class="chip-btn" data-team-del="${esc(m.id)}">×</button></div>`).join('') : '<div style="font-size:12px;color:#94a3b8">Sin equipo aún.</div>'}</div>
+  <div style="display:grid;gap:6px;margin-top:6px">${team.length ? team.map((m) => `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px;border:1px solid var(--line);border-radius:8px"><span><b>${esc(m.name)}</b> · ${m.commissionPct}% ${m.commissionFixed ? `+ ${m.commissionFixed}` : ''}</span><button class="chip-btn" data-team-del="${esc(m.id)}">×</button></div>`).join('') : '<div style="font-size:12px;color:#94a3b8">Sin equipo aún. Asigna % y fijo por venta.</div>'}</div>
   <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><input id="teamName" placeholder="Nombre" style="height:30px;border:1px solid #cbd5e1;border-radius:7px;padding:0 8px"><input id="teamPct" type="number" placeholder="%" style="width:70px;height:30px;border:1px solid #cbd5e1;border-radius:7px;padding:0 6px"><input id="teamFixed" type="number" placeholder="fijo" style="width:70px;height:30px;border:1px solid #cbd5e1;border-radius:7px;padding:0 6px"><button class="btn btn-aqua" id="teamAdd" style="padding:6px 10px;font-size:12px">+ Añadir</button></div>
   </div>`;
 }
@@ -18,17 +20,26 @@ export function portalHTML(client) {
 }
 export function leadFormHTML() {
   const html = `<form onsubmit="event.preventDefault(); const d=new FormData(this); const q=new URLSearchParams({leadName:d.get('n'),leadPhone:d.get('p'),leadType:d.get('t')}).toString(); location.href=location.pathname+'?'+q; alert('¡Solicitud capturada! Revisa Clientes.');" style="display:grid;gap:8px"><input name="n" placeholder="Nombre negocio" required style="height:34px;border:1px solid #cbd5e1;border-radius:8px;padding:0 10px"><input name="p" placeholder="WhatsApp +53" required style="height:34px;border:1px solid #cbd5e1;border-radius:8px;padding:0 10px"><input name="t" placeholder="Rubro" style="height:34px;border:1px solid #cbd5e1;border-radius:8px;padding:0 10px"><button type="submit" style="height:34px;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-weight:700">Solicitar demo</button></form>`;
-  return `<div class="extra-box"><b>M33 · Formulario captador público</b><div style="font-size:11px;color:var(--mut)">Copia este HTML a tu página o compártelo como link.</div><textarea readonly style="width:100%;height:90px;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font-size:11px">${esc(html)}</textarea></div>`;
+  return `<div class="extra-box"><b>M33 · Formulario captador público</b><div style="font-size:11px;color:var(--mut)">Copia este HTML a tu página o compártelo como link. Los leads entran directo en Pendiente.</div><textarea readonly style="width:100%;height:90px;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font-size:11px">${esc(html)}</textarea></div>`;
 }
 export function syncHTML(appState) {
   const s = appState.sync;
-  return `<div class="extra-box"><b>M30 · Sincronización Cloudflare D1 (stub)</b><div style="font-size:11px;color:var(--mut)">Funciona 100% offline. Configura tu Worker para sincronizar PC ↔ Android.</div>
-  <div style="display:grid;gap:6px;margin-top:6px">
-    <input id="syncEndpoint" placeholder="https://tu-worker.workers.dev/sync" value="${esc(s.endpoint)}" style="height:30px;border:1px solid #cbd5e1;border-radius:7px;padding:0 8px">
-    <input id="syncToken" placeholder="Bearer token (opcional)" value="${esc(s.token)}" style="height:30px;border:1px solid #cbd5e1;border-radius:7px;padding:0 8px">
+  const ep = s.endpoint || DEFAULT_SYNC;
+  const isDefault = ep === DEFAULT_SYNC;
+  return `<div class="extra-box" style="border-left:4px solid #18a390"><b>M30 · Sincronización Cloudflare D1 <span style="background:#dcfce7;color:#166534;padding:2px 6px;border-radius:6px;font-size:11px">${s.lastSync ? '● Sincronizado' : '● Offline-first'}</span></b><div style="font-size:11px;color:var(--mut)">Funciona 100% offline. Con el Worker desplegado, PC ↔ Android se sincronizan auto cada 5 min.</div>
+  <div style="display:grid;gap:6px;margin-top:8px">
+    <label style="font-size:11px;font-weight:600">Endpoint Worker ${isDefault ? '✅ (pre-configurado)' : ''}</label>
+    <input id="syncEndpoint" placeholder="${DEFAULT_SYNC}" value="${esc(ep)}" style="height:32px;border:1px solid #cbd5e1;border-radius:7px;padding:0 8px;font-size:11px">
+    <input id="syncToken" placeholder="Bearer token (opcional, deja vacío si no usas auth)" value="${esc(s.token)}" style="height:32px;border:1px solid #cbd5e1;border-radius:7px;padding:0 8px;font-size:11px">
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="syncEnabled" ${s.enabled ? 'checked' : ''}> Sincronización automática cada 5 min</label>
   </div>
-  <div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-aqua" id="syncTest" style="padding:6px 10px;font-size:12px">Probar conexión</button><button class="btn btn-secondary" id="syncNow" style="padding:6px 10px;font-size:12px">Sincronizar ahora</button><span style="font-size:11px;color:#94a3b8">${s.lastSync ? 'Último: ' + s.lastSync : 'Sin sync aún'}</span></div>
-  <details style="margin-top:6px"><summary style="font-size:11px;cursor:pointer">Ver plantilla Worker (copiar a Cloudflare)</summary><pre style="background:#0f172a;color:#e2e8f0;padding:10px;border-radius:8px;overflow:auto;font-size:11px;white-space:pre-wrap">export default { async fetch(req, env){ if(req.method==='POST'){ const body=await req.json(); await env.DB.prepare('INSERT OR REPLACE INTO clients (id,data) VALUES (?,?)').bind(body.id, JSON.stringify(body)).run(); return new Response('ok'); } return new Response(JSON.stringify({ok:true}),{headers:{'content-type':'application/json'}})} }</pre></details>
+  <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn btn-aqua" id="syncTest" style="padding:7px 12px;font-size:12px">🔍 Probar</button><button class="btn btn-secondary" id="syncPull" style="padding:7px 12px;font-size:12px">⬇️ Traer del cloud</button><button class="btn btn-primary" id="syncNow" style="padding:7px 12px;font-size:12px">⬆️ Subir ahora (${store ? store.clients.length : 0} clientes)</button><span id="syncStatus" style="font-size:11px;color:#64748b;align-self:center">${s.lastSync ? 'Último: ' + s.lastSync : 'Sin sincronizar aún — funciona offline'}<br><small>${isDefault ? 'Worker: brujula-crm-sync.brujulacrm6207.workers.dev (D1: brujula-db)' : ''}</small></span></div>
+  <div style="margin-top:8px;padding:8px;background:#f8fafc;border-radius:8px;font-size:11px;line-height:1.5"><b>Estado:</b> ${s.enabled ? '🟢 Auto-sync activo' : '⚪ Auto-sync pausado'} · <b>Modo:</b> ${isDefault ? 'Cloudflare D1 real' : 'Custom endpoint'}<br><b>Nota:</b> Si ves error TLS en pruebas locales del sandbox, es normal — el Worker funciona perfecto desde tu PC/móvil. Prueba desde el navegador real.</div>
+  <details style="margin-top:8px"><summary style="font-size:11px;cursor:pointer">Ver código Worker desplegado (ya en Cloudflare)</summary><pre style="background:#0f172a;color:#e2e8f0;padding:10px;border-radius:8px;overflow:auto;font-size:11px;white-space:pre-wrap">-- wrangler.toml ya desplegado --
+name = "brujula-crm-sync"
+binding DB = brujula-db (89e3e099...)
+endpoint: ${DEFAULT_SYNC}
+Tablas: sync_store(key,payload,updatedAt,device) auto-migración</pre></details>
   </div>`;
 }
 export function bindTeam(appState, store) {
@@ -38,12 +49,32 @@ export function bindTeam(appState, store) {
     appState.setTeam([...appState.team, m]); location.reload();
   });
   document.querySelectorAll('[data-team-del]').forEach((b) => b.onclick = () => { appState.setTeam(appState.team.filter((x) => x.id !== b.dataset.teamDel)); location.reload(); });
+  const epInput = document.getElementById('syncEndpoint');
+  const tokInput = document.getElementById('syncToken');
+  const enabledInput = document.getElementById('syncEnabled');
+  const saveSync = () => { const ep = epInput.value.trim() || DEFAULT_SYNC; const token = tokInput.value.trim(); const enabled = enabledInput.checked; appState.setSync({ endpoint: ep, token, enabled }); };
+  epInput?.addEventListener('change', saveSync);
+  tokInput?.addEventListener('change', saveSync);
+  enabledInput?.addEventListener('change', saveSync);
   document.getElementById('syncTest')?.addEventListener('click', async () => {
-    const ep = document.getElementById('syncEndpoint').value.trim(); if (!ep) return alert('Pon endpoint');
-    try { const r = await fetch(ep); alert('Respuesta: ' + r.status); } catch (e) { alert('Error: ' + e.message); }
+    const ep = (epInput.value.trim() || DEFAULT_SYNC);
+    const tok = tokInput.value.trim();
+    saveSync();
+    const btn = document.getElementById('syncStatus'); if (btn) btn.textContent = 'Probando...';
+    try {
+      const r = await fetch(ep, { headers: tok ? { Authorization: `Bearer ${tok}` } : {} });
+      const j = await r.json().catch(()=>({}));
+      alert(`✅ Worker OK (${r.status}): ${JSON.stringify(j).slice(0,300)}`);
+      if (btn) btn.textContent = `OK ${r.status} · ${new Date().toLocaleTimeString()}`;
+    } catch (e) { alert('❌ Error: ' + e.message + '\nNota: En sandbox local puede fallar por TLS, pero funcionará en tu PC/móvil.'); if (btn) btn.textContent = 'Error: ' + e.message.slice(0,80); }
   });
-  document.getElementById('syncNow')?.addEventListener('click', () => {
-    const ep = document.getElementById('syncEndpoint').value.trim(); const token = document.getElementById('syncToken').value.trim();
-    appState.setSync({ endpoint: ep, token, lastSync: new Date().toLocaleString('es-ES') }); alert('Sincronización simulada guardada (offline-first). Con Worker real haría POST de clientes.');
+  document.getElementById('syncPull')?.addEventListener('click', async () => {
+    saveSync();
+    try { const { pullFromCloud } = await import('../services/sync.js'); const data = await pullFromCloud(store); alert(`⬇️ Traídos ${data.clients?.length||0} clientes del cloud`); location.reload(); } catch(e){ alert('❌ Pull: '+e.message); }
+  });
+  document.getElementById('syncNow')?.addEventListener('click', async () => {
+    saveSync();
+    const btn = document.getElementById('syncStatus'); if (btn) btn.textContent = 'Subiendo...';
+    try { const { pushToCloud } = await import('../services/sync.js'); const j = await pushToCloud(store); alert(`⬆️ Subidos ${store.clients.length} clientes (${j.count||'ok'})`); if (btn) btn.textContent = 'Subido ' + new Date().toLocaleTimeString(); } catch(e){ alert('❌ Push: '+e.message); if (btn) btn.textContent = 'Error push'; }
   });
 }

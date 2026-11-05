@@ -10,3 +10,6 @@ tokens.txt
 .env.*
 __pycache__/
 .DS_Store
+.wrangler/
+.config/
+.npm/

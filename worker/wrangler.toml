@@ -1,0 +1,14 @@
+name = "brujula-crm-sync"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "brujula-db"
+database_id = "89e3e099-82dd-4b70-919b-f8dec10944f5"
+
+[vars]
+SYNC_DEFAULT_KEY = "main"
+
+# auto-create route? leave workers.dev enabled

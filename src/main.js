@@ -47,7 +47,7 @@ function renderSettingsExtras() {
   import('./ui/finance-panel.js').then((m) => { const b = $('#ratesBox'); if (b) { b.innerHTML = m.renderRatesConfig(appState); b.querySelectorAll('[data-rate]').forEach((inp) => inp.onchange = () => { const r = {}; r[inp.dataset.rate] = Number(inp.value); appState.setRates(r); showToast('Tasa actualizada'); }); b.querySelector('[data-rate-base]')?.addEventListener('change', (e) => appState.setRates({ base: e.target.value })); } });
   import('./ui/team-panel.js').then((m) => {
     const tb = $('#teamBox'); if (tb) tb.innerHTML = m.teamHTML(appState, store);
-    const sy = $('#syncBox'); if (sy) sy.innerHTML = m.syncHTML(appState);
+    const sy = $('#syncBox'); if (sy) sy.innerHTML = m.syncHTML(appState, store);
     const lf = $('#leadFormBox'); if (lf) lf.innerHTML = m.leadFormHTML();
     m.bindTeam(appState, store);
     const db = $('#demosBox'); if (db) db.innerHTML = `<div class="extra-box"><b>M18 · Demos por rubro</b><div style="display:grid;gap:6px;margin-top:6px">${Object.entries(appState.demos).map(([k, v]) => `<div style="display:flex;gap:6px"><span style="flex:1;font-size:12px">${k}</span><input data-demo-key="${k}" value="${v}" style="flex:2;height:28px;border:1px solid #cbd5e1;border-radius:6px;padding:0 6px"></div>`).join('')}</div><button class="btn btn-aqua" id="saveDemos" style="margin-top:6px;padding:6px 10px;font-size:12px">Guardar demos</button></div>`;
@@ -71,6 +71,11 @@ function init() {
   const clientsView = new ClientsView(store, shared); const projectsView = new ProjectsView(store, shared); new ImportView(store, shared);
   const refreshAll = () => { renderSidebarCounters(); renderDashboard(store, shared, appState); clientsView.render(appState); projectsView.render(appState); renderSettingsExtras(); };
   store.subscribe(refreshAll); appState.subscribe(refreshAll); refreshAll(); initFieldTools(store, shared);
+  // M30 · auto-sync si está activado + default endpoint
+  if (!appState.sync.endpoint) appState.setSync({ endpoint: 'https://brujula-crm-sync.brujulacrm6207.workers.dev/sync' });
+  import('./services/sync.js').then((m) => m.enableAutoSync(store, 5));
+  // M-automation · recordatorios WA automáticos cada 60 min + 9am
+  import('./services/automation.js').then((m) => { try { m.scheduleAutomation(store, appState, 60); const hits = m.runAutomationCheck(store, appState, true); if (hits.length) console.log('[Brújula] automatizaciones detectadas:', hits.length); } catch(e){ console.warn('auto', e); } });
   $$('.nav button[data-page]').forEach((btn) => btn.addEventListener('click', () => goto(btn.dataset.page)));
   $('#headerImportBtn')?.addEventListener('click', () => goto('import')); $('#newClientBtn')?.addEventListener('click', () => modals.openForm()); $('#newClientBtn2')?.addEventListener('click', () => modals.openForm());
   $('#viewClientsBtn')?.addEventListener('click', () => goto('clients')); $('#seedBannerBtn')?.addEventListener('click', loadCubaSeed); $('#seedSettingsBtn')?.addEventListener('click', loadCubaSeed);

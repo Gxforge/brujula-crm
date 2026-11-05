@@ -3,6 +3,8 @@ import { renderDebtors } from './finance-panel.js';
 import { renderRenewals, renderMRR, renderUpsell, renderReferrals } from './renewals-panel.js';
 import { goalsHTML, analyticsHTML } from './goals-panel.js';
 import { lossStats } from './audit-panel.js';
+import { renderAdvancedDashboard } from './analytics-advanced.js';
+import { scanAutomations } from '../services/automation.js';
 
 export function renderDashboard(store, handlers, appState) {
   const clients = store.clients; const total = clients.length;
@@ -41,6 +43,16 @@ export function renderDashboard(store, handlers, appState) {
   const ref = $('#referralBox'); if (ref) ref.innerHTML = `<b style="font-size:12px">M15 · Top referidos</b>` + renderReferrals(store);
   const ana = $('#analyticsBox'); if (ana) ana.innerHTML = analyticsHTML(store);
   const loss = $('#lossBox'); if (loss) loss.innerHTML = lossStats(store);
+  const adv = $('#advancedBox'); if (adv) adv.innerHTML = renderAdvancedDashboard(store, appState);
+  const autoBox = $('#automationBox');
+  if (autoBox) {
+    const hits = scanAutomations(clients);
+    if (!hits.length) autoBox.innerHTML = '';
+    else {
+      autoBox.innerHTML = `<div class="panel" style="padding:12px;border-left:4px solid #0ea5e9"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:13px">🤖 Automatizaciones WA · ${hits.length} pendientes</b><button class="chip-btn" id="autoRunAll">Abrir todos</button></div><div style="display:grid;gap:6px;margin-top:8px">${hits.slice(0,6).map((h,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:7px;border:1px solid var(--line);border-radius:8px"><span><b>${esc(h.client.name)}</b> · ${esc(h.rule.label)}<br><small style="color:var(--mut)">${esc(h.msg.slice(0,70))}…</small></span><a class="btn btn-aqua" href="${h.url}" target="_blank" style="padding:6px 10px;font-size:11px;text-decoration:none">WA</a></div>`).join('')}</div><div style="font-size:11px;color:#94a3b8;margin-top:6px">Recordatorios automáticos: enfriamiento 4d · cadencia vencida · renovación 7d · deuda. Se programan a las 9:00 y cada 60 min.</div></div>`;
+      document.getElementById('autoRunAll')?.addEventListener('click', ()=> hits.slice(0,3).forEach((h,i)=> setTimeout(()=> window.open(h.url,'_blank'), i*700)));
+    }
+  }
   // bind upsell clicks
   document.querySelectorAll('[data-upsell]').forEach((b) => b.onclick = () => handlers.openDetail(b.dataset.upsell));
   if (appState) {
