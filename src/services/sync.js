@@ -31,7 +31,10 @@ export async function signOutSync() {
 export async function pushToCloud(store) {
   const endpoint = getEndpoint();
   if (!appState.sync.token) throw new Error('Inicia sesión para sincronizar tus dispositivos.');
-  const payload = { clients: store.clients, services: store.services, projects: [], updatedAt: new Date().toISOString() };
+  const knownIds = new Set(appState.sync.syncedClientIds || []);
+  const localIds = new Set(store.clients.map((client) => client.id));
+  const deletedClientIds = [...knownIds].filter((id) => !localIds.has(id));
+  const payload = { clients: store.clients, services: store.services, projects: [], deletedClientIds, updatedAt: new Date().toISOString() };
   const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(payload) });
   const result = await parseResponse(response);
   appState.setSync({ lastSync: new Date().toLocaleString('es-ES') });
@@ -48,10 +51,11 @@ export async function pullFromCloud(store) {
       const local = map.get(remote.id);
       if (!local || new Date(remote.updatedAt || 0) > new Date(local.updatedAt || 0)) map.set(remote.id, remote);
     });
-    store.clients = Array.from(map.values());
+    const deleted = new Set(data.deletedClientIds || []);
+    store.clients = Array.from(map.values()).filter((client) => !deleted.has(client.id));
     if (Array.isArray(data.services) && data.services.length) store.services = data.services;
     store.save();
-    appState.setSync({ lastSync: new Date().toLocaleString('es-ES') });
+    appState.setSync({ lastSync: new Date().toLocaleString('es-ES'), syncedClientIds: store.clients.map((client) => client.id) });
   }
   return data;
 }
