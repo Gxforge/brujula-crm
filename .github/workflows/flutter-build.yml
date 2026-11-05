@@ -9,6 +9,10 @@ on:
       - 'styles/**'
       - 'worker/src/index.js'
       - '.github/workflows/flutter-build.yml'
+      - '.github/workflows/build-apps.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tests/**'
 
 permissions:
   contents: read
