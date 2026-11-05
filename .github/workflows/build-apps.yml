@@ -134,11 +134,11 @@ jobs:
           find artifacts -type f \( -name "*.apk" -o -name "*.exe" \) -exec cp {} release-files/ \;
           ls -lh release-files/
 
-      - name: Publicar en GitHub Releases (v1.4.5)
+      - name: Publicar en GitHub Releases (etiqueta actual)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.4.5
-          name: "Brújula CRM v1.4.5 · Edición estable · Móvil y PC responsive · Sincronización simple"
+          tag_name: ${{ github.ref_name }}
+          name: "Brújula CRM ${{ github.ref_name }} · Edición estable · Flutter nativo · Sincronización con cuenta"
           body: |
             ### Instaladores compilados automáticamente por GitHub Actions
             - **Corrección Android:** arreglado error de sintaxis que impedía inicializar los botones; corregido panel de sincronización.

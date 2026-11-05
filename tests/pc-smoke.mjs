@@ -33,7 +33,7 @@ try {
   check('guarda cliente y actualiza contador', window.document.getElementById('sideCount').textContent === '1');
   check('persiste el cliente en almacenamiento local', [...Array(window.localStorage.length)].some((_, i) => window.localStorage.getItem(window.localStorage.key(i))?.includes('Prueba automatizada')));
   await new Promise((resolve) => setTimeout(resolve, 300));
-  check('Ajustes renderiza sincronización simple', Boolean(window.document.getElementById('syncNow')) && !window.document.body.innerText.includes('Cloudflare D1'));
+  check('Ajustes muestra registro e inicio de sesión para sincronizar', Boolean(window.document.getElementById('syncAuth')) && Boolean(window.document.getElementById('syncMode')) && Boolean(window.document.getElementById('syncEmail')) && Boolean(window.document.getElementById('syncPassword')) && !window.document.body.innerText.includes('Cloudflare D1'));
   const teamName = window.document.getElementById('teamName'); teamName.value = 'Sigo escribiendo'; teamName.focus();
   const { appState } = await import('../src/core/app-state.js'); appState.setSync({ enabled: !appState.sync.enabled });
   await new Promise((resolve) => setTimeout(resolve, 30));
