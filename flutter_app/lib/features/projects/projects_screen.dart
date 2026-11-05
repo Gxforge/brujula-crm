@@ -80,11 +80,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         content: SizedBox(width: 440, child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
           _field(title, 'Proyecto *'),
           _field(client, 'Cliente'),
-          DropdownButtonFormField<String>(value: stage, decoration: const InputDecoration(labelText: 'Etapa'), items: projectStages.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(), onChanged: (value) => update(() => stage = value ?? stage)),
+          DropdownButtonFormField<String>(initialValue: stage, decoration: const InputDecoration(labelText: 'Etapa'), items: projectStages.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(), onChanged: (value) => update(() => stage = value ?? stage)),
           Row(children: [
             Expanded(child: _field(amount, 'Valor', keyboard: TextInputType.number)),
             const SizedBox(width: 8),
-            Expanded(child: DropdownButtonFormField<String>(value: currency, decoration: const InputDecoration(labelText: 'Moneda'), items: const ['USD', 'CUP', 'EUR'].map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(), onChanged: (value) => update(() => currency = value ?? currency))),
+            Expanded(child: DropdownButtonFormField<String>(initialValue: currency, decoration: const InputDecoration(labelText: 'Moneda'), items: const ['USD', 'CUP', 'EUR'].map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(), onChanged: (value) => update(() => currency = value ?? currency))),
           ]),
           _field(paid, 'Pagado', keyboard: TextInputType.number),
           _field(deadline, 'Fecha límite (AAAA-MM-DD)'),

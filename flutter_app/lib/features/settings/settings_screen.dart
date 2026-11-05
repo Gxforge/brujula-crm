@@ -55,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       final picked = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['json'], withData: true);
       final bytes = picked?.files.single.bytes;
-      if (bytes == null) return;
+      if (!mounted || bytes == null) return;
       final data = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
       if (data['format'] != 'brujula-backup-v1' || data['clients'] is! List || data['projects'] is! List) throw Exception('El formato del respaldo no es válido.');
       final ok = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text('Restaurar respaldo'), content: const Text('Esta acción reemplazará los clientes y proyectos actuales de este dispositivo.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Reemplazar datos'))]));

@@ -36,7 +36,7 @@ class _BrujulaAppState extends State<BrujulaApp> {
       colorScheme: scheme,
       scaffoldBackgroundColor: dark ? const Color(0xff101625) : const Color(0xfff5f7fb),
       appBarTheme: AppBarTheme(backgroundColor: dark ? const Color(0xff171d2b) : Colors.white, foregroundColor: scheme.onSurface, surfaceTintColor: Colors.transparent),
-      cardTheme: CardThemeData(color: dark ? const Color(0xff171d2b) : Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: scheme.outlineVariant.withOpacity(.55)))),
+      cardTheme: CardThemeData(color: dark ? const Color(0xff171d2b) : Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: scheme.outlineVariant.withValues(alpha: .55)))),
       inputDecorationTheme: InputDecorationTheme(border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: dark ? const Color(0xff20283a) : const Color(0xfffafbfe)),
     );
   }
