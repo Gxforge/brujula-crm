@@ -22,7 +22,7 @@ export function leadFormHTML() {
   const html = `<form onsubmit="event.preventDefault(); const d=new FormData(this); const q=new URLSearchParams({leadName:d.get('n'),leadPhone:d.get('p'),leadType:d.get('t')}).toString(); location.href=location.pathname+'?'+q; alert('¡Solicitud capturada! Revisa Clientes.');" style="display:grid;gap:8px"><input name="n" placeholder="Nombre negocio" required style="height:34px;border:1px solid #cbd5e1;border-radius:8px;padding:0 10px"><input name="p" placeholder="WhatsApp +53" required style="height:34px;border:1px solid #cbd5e1;border-radius:8px;padding:0 10px"><input name="t" placeholder="Rubro" style="height:34px;border:1px solid #cbd5e1;border-radius:8px;padding:0 10px"><button type="submit" style="height:34px;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-weight:700">Solicitar demo</button></form>`;
   return `<div class="extra-box"><b>M33 · Formulario captador público</b><div style="font-size:11px;color:var(--mut)">Copia este HTML a tu página o compártelo como link. Los leads entran directo en Pendiente.</div><textarea readonly style="width:100%;height:90px;margin-top:6px;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font-size:11px">${esc(html)}</textarea></div>`;
 }
-export function syncHTML(appState) {
+export function syncHTML(appState, store) {
   const s = appState.sync;
   const ep = s.endpoint || DEFAULT_SYNC;
   const isDefault = ep === DEFAULT_SYNC;
