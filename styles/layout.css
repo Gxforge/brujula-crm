@@ -260,3 +260,4 @@ a { color: var(--blue); }
   .filterbar .search{grid-column:auto}
   .team-add{grid-template-columns:minmax(0,1fr) 62px 62px}
 }
+.sync-login{display:grid;gap:10px;max-width:460px;margin:12px 0}.sync-login input{width:100%;min-height:42px;padding:10px 12px;border:1px solid var(--line,#d4dce8);border-radius:10px;background:var(--surface,#fff);color:var(--text,#172033);font:inherit}.sync-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.sync-account{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;padding:10px 12px;border-radius:10px;background:var(--surface-2,#f2f5f9)}.sync-account span{color:var(--muted,#69758a)}
