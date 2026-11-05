@@ -11,10 +11,17 @@ export function renderDashboard(store, handlers, appState) {
   const countBy = (st) => clients.filter((c) => c.status === st).length;
   const activeProvinces = new Set(clients.map((c) => c.province).filter(Boolean));
   const totalProjects = clients.reduce((a, c) => a + (c.projects?.length || 0), 0);
-  const totalQuoted = clients.reduce((a, c) => a + Number(c.value || 0), 0);
+  const activeClients = clients.filter((c) => !['Convertido', 'Descartado'].includes(c.status)).length;
+  const financial = { quoted: new Map(), paid: new Map(), balance: new Map() };
+  const addMoney = (bucket, currency, amount) => bucket.set(currency, (bucket.get(currency) || 0) + Number(amount || 0));
+  clients.forEach((c) => {
+    const projects = c.projects?.length ? c.projects : [{ price: c.value, paid: c.paid, currency: c.currency || 'USD' }];
+    projects.forEach((p) => { const cur = p.currency || c.currency || 'USD'; const price = Number(p.price || 0); const paid = Number(p.paid || 0); addMoney(financial.quoted, cur, price); addMoney(financial.paid, cur, paid); addMoney(financial.balance, cur, Math.max(0, price - paid)); });
+  });
+  const moneyText = (bucket) => [...bucket].filter(([, n]) => n !== 0).sort((a, b) => b[1] - a[1]).map(([cur, n]) => `${cur} ${Math.round(n).toLocaleString('es-ES')}`).join(' · ') || '—';
+  $('#mActive').textContent = activeClients; $('#mQuoted').textContent = moneyText(financial.quoted); $('#mPaid').textContent = moneyText(financial.paid); $('#mBalance').textContent = moneyText(financial.balance);
   $('#mTotal').textContent = total; $('#mPending').textContent = countBy('Pendiente'); $('#mContacted').textContent = countBy('Contactado');
-  $('#mProjects').textContent = totalProjects; $('#mProjectsNote').textContent = totalQuoted ? `$${totalQuoted.toLocaleString('es-ES')} cotizados` : 'pedidos';
-  $('#mConverted').textContent = countBy('Convertido'); $('#mProvinces').textContent = `${activeProvinces.size}/16`;
+  $('#mProjects').textContent = totalProjects; $('#mConverted').textContent = countBy('Convertido'); $('#mProvinces').textContent = `${activeProvinces.size}/16`;
   const maxStage = Math.max(total, 1); $('#funnelTotal').textContent = `${total} prospectos`;
   $('#pipeline').innerHTML = STAGES.map((st) => { const n = countBy(st.id); const pct = Math.round((n / maxStage) * 100); return `<div class="stage"><span class="stage-label">${esc(st.label)}</span><div class="stage-bar"><i style="background:${st.color};width:${pct}%"></i></div><strong>${n}</strong></div>`; }).join('');
   const provCounts = {}; clients.forEach((c) => { const p = c.province || 'Sin provincia'; provCounts[p] = (provCounts[p] || 0) + 1; });
@@ -33,13 +40,13 @@ export function renderDashboard(store, handlers, appState) {
   }
   const logs = store.activities.slice(0, 7);
   $('#activity').innerHTML = logs.length ? logs.map((it) => `<div class="activity-row"><div class="avatar">${esc(initials(it.subject))}</div><div><p><b>${esc(it.subject)}</b> · ${esc(it.action)}</p><time>${esc(relativeTime(it.at))}</time></div></div>`).join('') : `<div style="padding:22px 4px;text-align:center;color:var(--muted);font-size:12.5px">Importa tu tabla para comenzar. Base vacía.</div>`;
-  // Extras M07-M15 M34-M35
+  // Extras-M15-M35
   const gb = $('#goalsBar'); if (gb && appState) gb.innerHTML = goalsHTML(appState, store);
   const mrr = $('#mrrBox'); if (mrr && appState) mrr.innerHTML = renderMRR(store, appState);
-  const debt = $('#debtorsBox'); if (debt) debt.innerHTML = `<b style="font-size:12px">M10 · Deudores (saldo pendiente)</b>` + renderDebtors(store);
+  const debt = $('#debtorsBox'); if (debt) debt.innerHTML = `<b style="font-size:12px"> Deudores (saldo pendiente)</b>` + renderDebtors(store);
   const renew = $('#renewBox'); if (renew) renew.innerHTML = renderRenewals(store);
-  const ups = $('#upsellBox'); if (ups) ups.innerHTML = `<b style="font-size:12px">M14 · Upsell listo (30d básico)</b>` + renderUpsell(store);
-  const ref = $('#referralBox'); if (ref) ref.innerHTML = `<b style="font-size:12px">M15 · Top referidos</b>` + renderReferrals(store);
+  const ups = $('#upsellBox'); if (ups) ups.innerHTML = `<b style="font-size:12px"> Upsell listo (30d básico)</b>` + renderUpsell(store);
+  const ref = $('#referralBox'); if (ref) ref.innerHTML = `<b style="font-size:12px"> Top referidos</b>` + renderReferrals(store);
   const ana = $('#analyticsBox'); if (ana) ana.innerHTML = analyticsHTML(store);
   const loss = $('#lossBox'); if (loss) loss.innerHTML = lossStats(store);
   const adv = $('#advancedBox'); if (adv) adv.innerHTML = renderAdvancedDashboard(store, appState);

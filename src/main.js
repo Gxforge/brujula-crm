@@ -39,20 +39,19 @@ function updateStreak() {
   const today = new Date().toISOString().slice(0, 10); const g = appState.goals;
   if (g.lastActive !== today) { const diff = g.lastActive ? Math.floor((new Date(today) - new Date(g.lastActive)) / 86400000) : 99; g.streak = diff === 1 ? g.streak + 1 : 1; g.lastActive = today; appState.setGoals(g); }
 }
+let settingsExtrasMounted = false;
 function renderSettingsExtras() {
+  if (settingsExtrasMounted) return;
+  settingsExtrasMounted = true;
   import('./ui/finance-panel.js').then((m) => { const b = $('#ratesBox'); if (b) { b.innerHTML = m.renderRatesConfig(appState); b.querySelectorAll('[data-rate]').forEach((inp) => inp.onchange = () => { const r = {}; r[inp.dataset.rate] = Number(inp.value); appState.setRates(r); showToast('Tasa actualizada'); }); b.querySelector('[data-rate-base]')?.addEventListener('change', (e) => appState.setRates({ base: e.target.value })); } });
   import('./ui/team-panel.js').then((m) => {
     const tb = $('#teamBox'); if (tb) tb.innerHTML = m.teamHTML(appState, store);
     const sy = $('#syncBox'); if (sy) sy.innerHTML = m.syncHTML(appState, store);
-    const lf = $('#leadFormBox'); if (lf) lf.innerHTML = m.leadFormHTML();
     m.bindTeam(appState, store);
-    const db = $('#demosBox'); if (db) db.innerHTML = `<div class="extra-box"><b>M18 · Demos por rubro</b><div style="display:grid;gap:6px;margin-top:6px">${Object.entries(appState.demos).map(([k, v]) => `<div style="display:flex;gap:6px"><span style="flex:1;font-size:12px">${k}</span><input data-demo-key="${k}" value="${v}" style="flex:2;height:28px;border:1px solid #cbd5e1;border-radius:6px;padding:0 6px"></div>`).join('')}</div><button class="btn btn-aqua" id="saveDemos" style="margin-top:6px;padding:6px 10px;font-size:12px">Guardar demos</button></div>`;
-    document.getElementById('saveDemos')?.addEventListener('click', () => { const o = {}; document.querySelectorAll('[data-demo-key]').forEach((i) => o[i.dataset.demoKey] = i.value.trim()); appState.setDemos(o); showToast('Demos guardadas'); });
-    const pf = $('#profileBox'); if (pf) pf.innerHTML = `<div class="extra-box"><b>M24 · Perfil y QR portafolio</b><div style="display:grid;gap:6px;margin-top:6px"><input id="pfName" value="${appState.profile.businessName}" placeholder="Nombre negocio" style="height:30px;border:1px solid #cbd5e1;border-radius:7px;padding:0 8px"><input id="pfUrl" value="${appState.profile.portfolioUrl}" placeholder="https://portfolio" style="height:30px;border:1px solid #cbd5e1;border-radius:7px;padding:0 8px"><input id="pfPhone" value="${appState.profile.phone}" placeholder="Tel" style="height:30px;border:1px solid #cbd5e1;border-radius:7px;padding:0 8px"></div><button class="btn btn-aqua" id="saveProfile" style="margin-top:6px;padding:6px 10px;font-size:12px">Guardar perfil</button></div>`;
+    const pf = $('#profileBox'); if (pf) pf.innerHTML = `<div class="extra-box"><b>Mi negocio</b><div style="display:grid;gap:8px;margin-top:8px"><input id="pfName" value="${appState.profile.businessName}" placeholder="Nombre del negocio"><input id="pfUrl" value="${appState.profile.portfolioUrl}" placeholder="Enlace de portafolio"><input id="pfPhone" value="${appState.profile.phone}" placeholder="Teléfono"></div><button class="btn btn-aqua" id="saveProfile" style="margin-top:8px">Guardar</button></div>`;
     document.getElementById('saveProfile')?.addEventListener('click', () => { appState.setProfile({ businessName: document.getElementById('pfName').value, portfolioUrl: document.getElementById('pfUrl').value, phone: document.getElementById('pfPhone').value }); showToast('Perfil guardado'); });
   });
   import('./ui/goals-panel.js').then((m) => {
-    const gc = $('#goalsConfigBox'); if (gc) gc.innerHTML = `<div id="goalsBar2"></div>`; // placeholder
     const th = $('#themeBox'); if (th) th.innerHTML = m.themeHTML(appState);
     const sn = $('#snapsBox'); if (sn) sn.innerHTML = m.snapshotsHTML(appState);
     const ex = $('#extractorBox'); if (ex) ex.innerHTML = m.extractorHTML();
@@ -66,7 +65,20 @@ function init() {
   const modals = new ModalsView(store);
   const shared = { goto, openForm: (c = null) => modals.openForm(c), openFormWithService: (svc) => modals.openForm(null, svc), openServiceForm: (svc = null) => modals.openServiceForm(svc), openDetail: (id) => modals.openDetail(id), filterByProvince: (prov) => { goto('clients'); clientsView.setProvinceFilter(prov); } };
   const clientsView = new ClientsView(store, shared); const projectsView = new ProjectsView(store, shared); new ImportView(store, shared);
-  const refreshAll = () => { renderSidebarCounters(); renderDashboard(store, shared, appState); clientsView.render(appState); projectsView.render(appState); renderSettingsExtras(); };
+  const refreshAll = () => {
+    const active = document.activeElement;
+    const id = active?.id;
+    const value = active && 'value' in active ? active.value : undefined;
+    let start = null, end = null;
+    try { start = active?.selectionStart; end = active?.selectionEnd; } catch { /* number/date inputs */ }
+    renderSidebarCounters(); renderDashboard(store, shared, appState); clientsView.render(appState); projectsView.render(appState); renderSettingsExtras();
+    const next = id ? document.getElementById(id) : null;
+    if (next && next !== active) {
+      if (value !== undefined && !['checkbox', 'radio', 'file'].includes(next.type)) next.value = value;
+      next.focus({ preventScroll: true });
+      try { if (start !== null && start !== undefined) next.setSelectionRange(start, end); } catch { /* number/date inputs */ }
+    }
+  };
   store.subscribe(refreshAll); appState.subscribe(refreshAll); refreshAll(); initFieldTools(store, shared);
   // M30 · auto-sync si está activado + default endpoint
   if (!appState.sync.endpoint) appState.setSync({ endpoint: 'https://brujula-crm-sync.brujulacrm6207.workers.dev/sync' });

@@ -156,3 +156,35 @@
 @media (max-width: 680px) {
   .metrics { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* Resumen de negocio: lectura rápida y adaptable */
+.metrics-finance{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.metrics-finance .metric{min-width:0;padding:16px}
+.metrics-finance .metric-value{font-size:clamp(19px,2vw,26px);overflow-wrap:anywhere}
+.metrics-finance .money-value{font-size:clamp(14px,1.35vw,18px);line-height:1.35;min-height:2.7em;display:flex;align-items:center}
+.dashboard-kpis{display:flex;gap:8px;overflow-x:auto;white-space:nowrap;padding:0 0 14px;margin-top:-8px;scrollbar-width:thin}
+.dashboard-kpis span{background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:11px;color:var(--muted);flex:none}
+.dashboard-kpis b{color:var(--ink)}
+@media(max-width:900px){.metrics-finance{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){
+  .metrics-finance{gap:8px;margin-bottom:14px}
+  .metrics-finance .metric{padding:12px;border-radius:13px}
+  .metrics-finance .metric-label{font-size:11px}
+  .metrics-finance .metric-value{font-size:20px;margin:6px 0 2px}
+  .metrics-finance .money-value{font-size:13px;min-height:2.5em}
+  .metrics-finance .metric-note{font-size:10px}
+  .dashboard-kpis{gap:6px;padding-bottom:12px}
+  .dashboard-kpis span{font-size:10px;padding:5px 9px}
+  .dashboard-grid{grid-template-columns:minmax(0,1fr);gap:10px;margin-bottom:10px}
+  .panel-heading{padding:13px 14px}
+  .panel-heading h2{font-size:13px}
+  .pipeline{padding:12px 14px 6px}
+  .stage{grid-template-columns:minmax(88px,1fr) minmax(60px,2fr) 25px;gap:7px}
+  .stage-label{font-size:11px}
+  .prov-grid{padding:10px;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .prov-chip{padding:7px 8px;font-size:11px}
+  .activity-list{padding:4px 14px 10px;max-height:240px}
+  .hero{align-items:flex-start;margin-bottom:15px;gap:10px}
+  .hero h1{font-size:21px}
+  .date-chip{font-size:10px;padding:5px 8px}
+}

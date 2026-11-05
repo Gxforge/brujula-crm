@@ -33,7 +33,12 @@ try {
   check('guarda cliente y actualiza contador', window.document.getElementById('sideCount').textContent === '1');
   check('persiste el cliente en almacenamiento local', [...Array(window.localStorage.length)].some((_, i) => window.localStorage.getItem(window.localStorage.key(i))?.includes('Prueba automatizada')));
   await new Promise((resolve) => setTimeout(resolve, 300));
-  check('Ajustes renderiza sincronización sin error', Boolean(window.document.getElementById('syncNow')));
+  check('Ajustes renderiza sincronización simple', Boolean(window.document.getElementById('syncNow')) && !window.document.body.innerText.includes('Cloudflare D1'));
+  const teamName = window.document.getElementById('teamName'); teamName.value = 'Sigo escribiendo'; teamName.focus();
+  const { appState } = await import('../src/core/app-state.js'); appState.setSync({ enabled: !appState.sync.enabled });
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  check('no pierde foco ni el valor al actualizar estado', window.document.activeElement.id === 'teamName' && teamName.value === 'Sigo escribiendo');
+  check('M18 y formulario público ocultos', !window.document.body.innerText.includes('M18') && !window.document.body.innerText.includes('Formulario captador'));
   check('sin errores de ejecución', errors.length === 0);
 } catch (error) {
   errors.push(error.stack || String(error));

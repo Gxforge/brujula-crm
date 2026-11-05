@@ -17,14 +17,14 @@
 <button data-page="import"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg> Importar</button>
 <button data-page="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2.12 2.12-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20.2h-3v-.08a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2.12-2.12.06-.06A1.65 1.65 0 0 0 7.12 15a1.65 1.65 0 0 0-1.51-1H5.5v-3h.11a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06L8.85 6l.06.06A1.65 1.65 0 0 0 10.73 6.4h.01A1.65 1.65 0 0 0 11.74 4.9V4.8h3v.1a1.65 1.65 0 0 0 1 1.5 1.65 1.65 0 0 0 1.82-.33l.06-.06 2.12 2.12-.06.06A1.65 1.65 0 0 0 19.35 10c.2.63.78 1.05 1.45 1.05h.1v3h-.1c-.67 0-1.25.42-1.45 1.05z"/></svg> Ajustes</button>
 </nav>
-<div class="side-bottom"><div class="storage-line"><span>Base</span><span id="storageText">0 clientes</span></div><div class="bar"><i id="storageBar"></i></div><p class="privacy">Modular ES6 · Ctrl+K paleta · Offline-first</p></div>
+<div class="side-bottom"><div class="storage-line"><span>Base</span><span id="storageText">0 clientes</span></div><div class="bar"><i id="storageBar"></i></div><p class="privacy">Funciona sin conexión · Atajos de teclado</p></div>
 </aside>
 <main class="main">
 <header class="topbar"><div class="crumb"><span>Brújula CRM</span><span>›</span><b id="crumb">Resumen comercial</b></div>
 <div class="header-actions">
 <button class="btn btn-secondary" id="undoBtn" style="display:none">↶ Deshacer</button>
-<button class="btn btn-secondary" id="burstBtn" title="Modo Ráfaga M20">⚡ Ráfaga</button>
-<button class="btn btn-secondary" id="btnQrPresent" title="QR Presentación M24">QR</button>
+<button class="btn btn-secondary" id="burstBtn" title="Modo Ráfaga">⚡ Ráfaga</button>
+<button class="btn btn-secondary" id="btnQrPresent" title="QR Presentación">QR</button>
 <button class="btn btn-secondary" id="headerImportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg> <span class="hide-mobile">Importar Excel</span></button>
 <button class="btn btn-primary" id="newClientBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> <span>Añadir cliente</span></button>
 </div></header>
@@ -32,31 +32,30 @@
 <section class="page active" id="page-dashboard">
 <div class="hero"><div><h1>Panel de Prospección y Proyectos</h1><p>Controla prospectos, proyectos, cobranza, renovaciones y metas.</p></div><div class="hero-right"><span class="date-chip" id="today"></span></div></div>
 
-<div class="metrics">
-<div class="metric"><div class="metric-label">Total prospectos <i class="metric-dot" style="background:#94a3b8"></i></div><div class="metric-value" id="mTotal">0</div><div class="metric-note">cartera</div></div>
-<div class="metric"><div class="metric-label">Por contactar <i class="metric-dot" style="background:var(--sun)"></i></div><div class="metric-value" id="mPending">0</div><div class="metric-note">listos</div></div>
-<div class="metric"><div class="metric-label">Contactados <i class="metric-dot" style="background:var(--blue)"></i></div><div class="metric-value" id="mContacted">0</div><div class="metric-note">enviados</div></div>
-<div class="metric"><div class="metric-label">Proyectos pedidos <i class="metric-dot" style="background:var(--purple)"></i></div><div class="metric-value" id="mProjects">0</div><div class="metric-note" id="mProjectsNote">pedidos</div></div>
-<div class="metric"><div class="metric-label">Convertidos <i class="metric-dot" style="background:var(--aqua)"></i></div><div class="metric-value" id="mConverted">0</div><div class="metric-note">ganados</div></div>
-<div class="metric"><div class="metric-label">Regiones <i class="metric-dot" style="background:var(--accent)"></i></div><div class="metric-value" id="mProvinces">0/16</div><div class="metric-note">cobertura</div></div>
+<div class="metrics metrics-finance">
+<div class="metric metric-active"><div class="metric-label">Activos <i class="metric-dot" style="background:var(--blue)"></i></div><div class="metric-value" id="mActive">0</div><div class="metric-note">clientes en gestión</div></div>
+<div class="metric"><div class="metric-label">Cotizado <i class="metric-dot" style="background:var(--purple)"></i></div><div class="metric-value money-value" id="mQuoted">—</div><div class="metric-note" id="mQuotedNote">total de proyectos</div></div>
+<div class="metric"><div class="metric-label">Abonado <i class="metric-dot" style="background:var(--aqua)"></i></div><div class="metric-value money-value" id="mPaid">—</div><div class="metric-note">pagos recibidos</div></div>
+<div class="metric"><div class="metric-label">Pendiente <i class="metric-dot" style="background:var(--accent)"></i></div><div class="metric-value money-value" id="mBalance">—</div><div class="metric-note">saldo por cobrar</div></div>
 </div>
+<div class="dashboard-kpis"><span><b id="mTotal">0</b> en cartera</span><span><b id="mPending">0</b> por contactar</span><span><b id="mContacted">0</b> contactados</span><span><b id="mProjects">0</b> proyectos</span><span><b id="mConverted">0</b> ganados</span><span><b id="mProvinces">0/16</b> provincias</span></div>
 <div id="goalsBar"></div>
 <div class="dashboard-grid"><section class="panel"><div class="panel-heading"><h2>Embudo comercial</h2><small id="funnelTotal">0</small></div><div class="pipeline" id="pipeline"></div></section><section class="panel"><div class="panel-heading"><h2>Próximos seguimientos</h2><button class="btn-ghost" id="viewClientsBtn">Ver todos →</button></div><div class="activity-list" id="upcomingList"></div></section></div>
 <div class="dashboard-grid"><section class="panel"><div class="panel-heading"><h2>Cobertura por provincias</h2><small>15 + Isla</small></div><div class="prov-grid" id="provGrid"></div></section><section class="panel"><div class="panel-heading"><h2>Historial actividad</h2><small>Tiempo real</small></div><div class="activity-list" id="activity"></div></section></div>
-<div class="dashboard-grid"><section class="panel"><div class="panel-heading"><h2>💰 MRR vs Ventas únicas + Deudores</h2></div><div id="mrrBox"></div><div id="debtorsBox" style="margin-top:10px"></div></section><section class="panel"><div class="panel-heading"><h2>🔔 Renovaciones próximas (M12)</h2></div><div id="renewBox"></div></section></div>
+<div class="dashboard-grid"><section class="panel"><div class="panel-heading"><h2>💰 MRR vs Ventas únicas + Deudores</h2></div><div id="mrrBox"></div><div id="debtorsBox" style="margin-top:10px"></div></section><section class="panel"><div class="panel-heading"><h2>🔔 Renovaciones próximas</h2></div><div id="renewBox"></div></section></div>
 <div class="dashboard-grid"><section class="panel"><div class="panel-heading"><h2>🚀 Upsell + Referidos</h2></div><div id="upsellBox"></div><div id="referralBox" style="margin-top:10px"></div></section><section class="panel"><div class="panel-heading"><h2>📊 Rentabilidad por rubro/provincia</h2></div><div id="analyticsBox"></div></section></div>
 <div id="automationBox" style="margin-top:14px"></div>
 <div class="panel" style="margin-top:14px"><div class="panel-heading"><h2>📊 Analítica avanzada — ingresos, embudo y vendedores</h2></div><div id="advancedBox"></div></div>
-<div class="panel" style="margin-top:14px"><div class="panel-heading"><h2>📉 Motivos de pérdida (M29)</h2></div><div id="lossBox"></div></div>
+<div class="panel" style="margin-top:14px"><div class="panel-heading"><h2>📉 Motivos de pérdida</h2></div><div id="lossBox"></div></div>
 </section>
 <section class="page" id="page-clients">
-<div class="hero"><div><h1>Clientes y Proyectos</h1><p>Filtra, detecta enfriamiento (M17), agrupa por ruta (M23) y fusiona duplicados (M28).</p></div>
+<div class="hero"><div><h1>Clientes y Proyectos</h1><p>Filtra, detecta enfriamiento, agrupa por ruta y fusiona duplicados.</p></div>
 <div class="hero-right"><div class="view-switch"><button type="button" class="active" data-view-mode="table">☰ Tabla</button><button type="button" data-view-mode="kanban">▤ Kanban</button></div><button class="btn btn-secondary" id="exportXlsxBtn">.xlsx</button><button class="btn btn-secondary" id="exportCsvBtn">CSV</button><button class="btn btn-primary" id="newClientBtn2">+ Añadir</button></div></div>
 <div id="dupBanner"></div>
 <div class="filterbar"><div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="search" placeholder="Buscar negocio, proyecto, teléfono..." /></div>
 <select id="statusFilter"><option value="">Todos los estados</option><option value="Pendiente">Por contactar</option><option value="Contactado">Contactado</option><option value="Seguimiento">Seguimiento</option><option value="Propuesta">Propuesta / Demo</option><option value="Convertido">Convertido</option><option value="Descartado">Descartado</option></select>
 <select id="projectFilter"><option value="">Todos los proyectos</option></select><select id="provinceFilter"><option value="">Todas las provincias</option></select><select id="socialFilter"><option value="">Todas las redes</option><option value="facebook">Facebook</option><option value="instagram">Instagram</option></select>
-<label style="font-size:11px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="routeToggle"> Ruta por zona (M23)</label>
+<label style="font-size:11px;display:flex;align-items:center;gap:4px"><input type="checkbox" id="routeToggle"> Ruta por zona</label>
 <span style="font-size:12px;color:var(--muted);margin-left:auto" id="tableCount">0</span></div>
 <div id="bulkBar" class="bulkbar" style="display:none"><strong id="bulkCountText">0</strong><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><select id="bulkStatusSelect"><option value="Pendiente">Mover a: Por contactar</option><option value="Contactado">Mover a: Contactado</option><option value="Seguimiento">Mover a: Seguimiento</option><option value="Propuesta">Mover a: Propuesta</option><option value="Convertido">Mover a: Convertido</option><option value="Descartado">Mover a: Descartado</option></select><button type="button" class="btn btn-aqua" id="bulkApplyBtn" style="padding:6px 11px;font-size:12px">Aplicar</button><button type="button" class="btn delete-btn" id="bulkDeleteBtn" style="padding:6px 11px;font-size:12px">Eliminar</button></div></div>
 <div id="routeBox" style="display:none"></div>
@@ -70,14 +69,14 @@
 <div id="projectsContainer"></div>
 </section>
 <section class="page" id="page-import">
-<div class="hero"><div><h1>Importación Inteligente</h1><p>Excel (.xlsx), CSV, JSON, pegado y extractor M40.</p></div></div>
+<div class="hero"><div><h1>Importación Inteligente</h1><p>Excel (.xlsx), CSV, JSON, pegado y extractor.</p></div></div>
 <div class="import-grid"><div class="import-card"><div class="import-top"><h2>1. Sube archivo Excel, CSV o JSON</h2><p>Detecta proyectos, pagos y encabezados.</p></div><label class="dropzone" id="dropzone" for="fileInput"><div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V3M7 8l5-5 5 5"/><path d="M4 15v5h16v-5"/></svg></div><b>Arrastra .xlsx, .csv o .json</b><span style="font-size:11.5px;color:#8490a3;margin-top:4px">Soporta cualquier Excel / CSV exportado</span></label><input type="file" id="fileInput" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.json" hidden /><div id="importBanner" class="status-banner"></div></div>
 <div class="import-card"><div class="import-top"><h2>2. Pega filas desde Excel / Chat</h2><p>Copia celdas y pega aquí.</p></div><div class="paste-box" style="padding-top:18px"><textarea id="pasteTextarea" placeholder="Nombre;Provincia;Tel;Proyecto"></textarea><div style="display:flex;justify-content:flex-end;margin-top:10px"><button type="button" class="btn btn-secondary" id="parsePasteBtn">Analizar →</button></div></div></div></div>
 <div id="mapperContainer" style="display:none"></div>
 <div id="extractorBox" style="margin-top:14px"></div>
 </section>
 <section class="page" id="page-settings">
-<div class="hero"><div><h1>Ajustes y Respaldo</h1><p>Tasas, equipo, demos, metas, tema, snapshots, sync, contratos y portal.</p></div></div>
+<div class="hero"><div><h1>Ajustes</h1><p>Administra tus tasas, equipo, respaldo y preferencias.</p></div></div>
 <div class="settings-grid">
 <div class="panel settings-card"><h2 style="margin:0 0 12px;font-size:16px">Exportación e inicialización</h2>
 <div class="settings-row"><div><b>Descargar Excel (.xlsx)</b><div style="font-size:12px;color:var(--muted)">Incluye proyectos y abonos.</div></div><button class="btn btn-primary" id="exportXlsxSettingsBtn">Exportar .xlsx</button></div>
@@ -89,13 +88,11 @@
 <div style="display:grid;gap:14px;margin-top:14px">
 <div id="ratesBox"></div>
 <div id="teamBox"></div>
-<div id="demosBox"></div>
 <div id="profileBox"></div>
 <div id="syncBox"></div>
 <div id="goalsConfigBox"></div>
 <div id="themeBox"></div>
 <div id="snapsBox"></div>
-<div id="leadFormBox"></div>
 </div>
 </section>
 </div>
@@ -120,14 +117,14 @@
 <div class="field"><label for="fDeadline">Entrega estimada</label><input id="fDeadline" type="date" /></div>
 <div class="field"><label for="fEvidenceUrl">Enlace perfil</label><input id="fEvidenceUrl" type="url" placeholder="https://..." /></div>
 <div class="field"><label for="fReferred">Referido por</label><select id="fReferred"><option value="">— Ninguno —</option></select></div>
-<div class="field"><label for="fAssigned">Vendedor asignado (M31)</label><select id="fAssigned"><option value="">— Sin asignar —</option></select></div>
+<div class="field"><label for="fAssigned">Vendedor asignado</label><select id="fAssigned"><option value="">— Sin asignar —</option></select></div>
 <div class="field full"><label for="fRequirements">Requisitos que pidió</label><input id="fRequirements" placeholder="Ej. menú con fotos, Transfermóvil..." /></div>
 <div class="field full"><label for="fEvidence">Evidencia</label><textarea id="fEvidence" style="min-height:54px" placeholder="Por qué necesita proyecto..."></textarea></div>
 <div class="field full"><label for="fNotes">Notas privadas</label><textarea id="fNotes" style="min-height:54px" placeholder="Acuerdos, objeciones..."></textarea></div>
-<div class="field full"><label>Notas voz (M25)</label><div style="display:flex;gap:6px"><button type="button" class="chip-btn" id="btnVoice">🎙️ Dictar</button><span style="font-size:11px;color:var(--mut)">Usa micrófono del navegador</span></div></div>
+<div class="field full"><label>Notas voz</label><div style="display:flex;gap:6px"><button type="button" class="chip-btn" id="btnVoice">🎙️ Dictar</button><span style="font-size:11px;color:var(--mut)">Usa micrófono del navegador</span></div></div>
 </div></div>
 <div class="modal-footer"><button type="button" id="deleteClientBtn" class="btn delete-btn" style="display:none">Eliminar cliente</button><div style="display:flex;gap:8px;margin-left:auto"><button type="button" class="btn btn-secondary" data-close="formLayer">Cancelar</button><button type="submit" class="btn btn-primary">Guardar cliente</button></div></div></form></div></div>
-<div class="modal-layer" id="serviceLayer"><div class="modal medium" role="dialog" aria-modal="true"><div class="modal-header"><h2 id="svcFormTitle">Paquete</h2><button type="button" class="close-btn" data-close="serviceLayer">×</button></div><form id="serviceForm"><div class="modal-body"><input type="hidden" id="svcId" /><div class="form-grid"><div class="field full"><label for="svcName">Nombre paquete *</label><input id="svcName" required placeholder="Ej. Catálogo QR + Domicilio" /></div><div class="field"><label for="svcCategory">Categoría</label><input id="svcCategory" placeholder="Catálogos, Web, App..." /></div><div class="field"><label for="svcDays">Días entrega</label><input id="svcDays" type="number" min="1" value="4" /></div><div class="field"><label for="svcPrice">Precio sugerido</label><input id="svcPrice" type="number" min="0" value="60" /></div><div class="field"><label for="svcCurrency">Moneda</label><select id="svcCurrency"></select></div><div class="field"><label>Tarea recurrente (M13)</label><label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="svcRecurring"> Es mensualidad/hosting</label></div><div class="field full"><label for="svcSummary">Descripción corta</label><input id="svcSummary" placeholder="Qué resuelve..." /></div><div class="field full"><label for="svcDeliverables">Entregables (1 por línea)</label><textarea id="svcDeliverables" placeholder="Diseño con marca&#10;Carrito a WA&#10;QR imprimible"></textarea></div></div></div><div class="modal-footer"><button type="button" id="deleteServiceBtn" class="btn delete-btn" style="display:none">Eliminar paquete</button><div style="display:flex;gap:8px;margin-left:auto"><button type="button" class="btn btn-secondary" data-close="serviceLayer">Cancelar</button><button type="submit" class="btn btn-primary">Guardar paquete</button></div></div></form></div></div>
+<div class="modal-layer" id="serviceLayer"><div class="modal medium" role="dialog" aria-modal="true"><div class="modal-header"><h2 id="svcFormTitle">Paquete</h2><button type="button" class="close-btn" data-close="serviceLayer">×</button></div><form id="serviceForm"><div class="modal-body"><input type="hidden" id="svcId" /><div class="form-grid"><div class="field full"><label for="svcName">Nombre paquete *</label><input id="svcName" required placeholder="Ej. Catálogo QR + Domicilio" /></div><div class="field"><label for="svcCategory">Categoría</label><input id="svcCategory" placeholder="Catálogos, Web, App..." /></div><div class="field"><label for="svcDays">Días entrega</label><input id="svcDays" type="number" min="1" value="4" /></div><div class="field"><label for="svcPrice">Precio sugerido</label><input id="svcPrice" type="number" min="0" value="60" /></div><div class="field"><label for="svcCurrency">Moneda</label><select id="svcCurrency"></select></div><div class="field"><label>Tarea recurrente</label><label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="svcRecurring"> Es mensualidad/hosting</label></div><div class="field full"><label for="svcSummary">Descripción corta</label><input id="svcSummary" placeholder="Qué resuelve..." /></div><div class="field full"><label for="svcDeliverables">Entregables (1 por línea)</label><textarea id="svcDeliverables" placeholder="Diseño con marca&#10;Carrito a WA&#10;QR imprimible"></textarea></div></div></div><div class="modal-footer"><button type="button" id="deleteServiceBtn" class="btn delete-btn" style="display:none">Eliminar paquete</button><div style="display:flex;gap:8px;margin-left:auto"><button type="button" class="btn btn-secondary" data-close="serviceLayer">Cancelar</button><button type="submit" class="btn btn-primary">Guardar paquete</button></div></div></form></div></div>
 <div class="modal-layer" id="detailLayer"><div class="modal" role="dialog" aria-modal="true"><div class="modal-header"><h2>Ficha comercial, proyectos y cotizador</h2><button type="button" class="close-btn" data-close="detailLayer">×</button></div><div class="modal-body" id="detailContent"></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-close="detailLayer">Cerrar</button><button type="button" class="btn btn-primary" id="editFromDetailBtn">Editar</button></div></div></div>
 <div class="toast" id="toast"></div>
 <div class="cmd-mask" id="cmdMask"><div class="cmd-box"><input id="cmdInput" placeholder="Ctrl+K → buscar cliente, acción..."/><div class="cmd-list" id="cmdList"></div></div></div>
