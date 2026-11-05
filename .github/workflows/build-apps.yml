@@ -135,10 +135,12 @@ jobs:
       - name: Publicar en GitHub Releases (v1.4.1)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.4.1
-          name: "Brújula CRM v1.4.1 · Todos los bloques B-H (M07-M40)"
+          tag_name: v1.4.2
+          name: "Brújula CRM v1.4.2 · Android corregido · JS bundle validado · Base vacía"
           body: |
             ### Instaladores compilados automáticamente por GitHub Actions
+- **Corrección Android:** arreglado error de sintaxis que impedía inicializar los botones; corregido panel de sincronización.
+- **Validación CI:** esbuild analiza y empaqueta el módulo principal antes de compilar el APK.
             - **Android (Teléfono / Tablet):** Descarga e instala `Brujula-CRM-Android.apk`.
             - **PC Windows (Portable sin instalación):** Abre directamente `Brujula-CRM-PC-Portable.exe`.
             - **PC Windows (Instalador completo):** Ejecuta `Brujula-CRM-PC-Setup.exe` para crear accesos directos en Escritorio e Inicio.
