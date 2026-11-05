@@ -1,6 +1,6 @@
 {
   "name": "brujula-crm",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "CRM modular para prospección de negocios, importación Excel/CSV y gestión comercial por WhatsApp",
   "main": "electron/main.cjs",
   "author": "Gxforge",

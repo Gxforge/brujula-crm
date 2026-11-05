@@ -130,16 +130,21 @@ jobs:
           find artifacts -type f \( -name "*.apk" -o -name "*.exe" \) -exec cp {} release-files/ \;
           ls -lh release-files/
 
-      - name: Publicar en GitHub Releases (v1.1.0)
+      - name: Publicar en GitHub Releases (v1.2.0)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.1.0
-          name: "Brújula CRM v1.1.0 · Proyectos por Cliente, Cotizador, APK y PC (.exe)"
+          tag_name: v1.2.0
+          name: "Brújula CRM v1.2.0 · Tablero de Producción, Insumos, 3 Niveles, Bóveda y Rentabilidad"
           body: |
             ### Instaladores compilados automáticamente por GitHub Actions
             - **Android (Teléfono / Tablet):** Descarga e instala `Brujula-CRM-Android.apk`.
             - **PC Windows (Portable sin instalación):** Abre directamente `Brujula-CRM-PC-Portable.exe`.
             - **PC Windows (Instalador completo):** Ejecuta `Brujula-CRM-PC-Setup.exe` para crear accesos directos en Escritorio e Inicio.
+            ### Novedades v1.2.0 — Bloque Producción M01-M06
+            - Tablero Kanban de Producción (Faltan insumos → En diseño → Revisión → Publicado) con promoción automática al aprobar.
+            - Checklist de Insumos del cliente con % de avance.
+            - Cotizaciones en 3 niveles (Básico/Pro/Completo) con envío directo a WhatsApp.
+            - Control de revisiones incluidas vs usadas, bóveda técnica con QR y cronómetro de rentabilidad por hora.
           files: release-files/*
           prerelease: false
           make_latest: true
