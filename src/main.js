@@ -9,6 +9,7 @@ import { ImportView } from './ui/import-view.js';
 import { ModalsView } from './ui/modals-view.js';
 import { initFieldTools } from './ui/field-tools.js';
 import { buildPortalData } from './data/team.js';
+import { installNativeIcons } from './ui/icons.js';
 
 const PAGE_TITLES = { dashboard: 'Resumen', clients: 'Clientes', projects: 'Proyectos', import: 'Importar', settings: 'Ajustes' };
 function goto(page) {
@@ -59,6 +60,7 @@ function renderSettingsExtras() {
   });
 }
 function init() {
+  installNativeIcons(document.body);
   const d = new Date(); const dt = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); if ($('#today')) $('#today').textContent = dt.charAt(0).toUpperCase() + dt.slice(1);
   handleUrlLeads(); updateStreak();
   const modals = new ModalsView(store);

@@ -19,6 +19,7 @@ const check = (name, ok) => { checks.push([name, Boolean(ok)]); console.log(`${o
 try {
   await import('../src/main.js?pc-smoke');
   await new Promise((resolve) => setTimeout(resolve, 250));
+  check('emojis visibles sustituidos por SVG propios', window.document.querySelectorAll('.crm-icon svg.ui-icon').length > 0 && !/\p{Extended_Pictographic}/u.test(window.document.body.innerText));
   for (const page of ['dashboard', 'clients', 'projects', 'import', 'settings']) {
     window.document.querySelector(`[data-page="${page}"]`).click();
     check(`navegación ${page}`, window.document.getElementById(`page-${page}`).classList.contains('active'));
