@@ -43,7 +43,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     final visible = values.where((item) => '${item.title} ${item.clientName} ${item.stage}'.toLowerCase().contains(query)).toList();
     return Scaffold(
       body: loading ? const Center(child: CircularProgressIndicator()) : Column(children: [
-        Padding(padding: const EdgeInsets.all(16), child: TextField(controller: search, onChanged: (_) => setState(() {}), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Buscar proyectos')),
+        Padding(padding: const EdgeInsets.all(16), child: TextField(controller: search, onChanged: (_) => setState(() {}), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Buscar proyectos'))),
         Expanded(child: visible.isEmpty ? Center(child: Text(values.isEmpty ? 'Aún no hay proyectos' : 'Sin resultados')) : ListView.builder(padding: const EdgeInsets.fromLTRB(12, 0, 12, 90), itemCount: visible.length, itemBuilder: (_, i) => _card(visible[i]))),
       ]),
       floatingActionButton: FloatingActionButton.extended(onPressed: () => _edit(), icon: const Icon(Icons.add), label: const Text('Nuevo proyecto')),
