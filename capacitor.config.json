@@ -1,0 +1,9 @@
+{
+  "appId": "com.gxforge.brujulacrm",
+  "appName": "Brujula CRM",
+  "webDir": "dist-web",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}

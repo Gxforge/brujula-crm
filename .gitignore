@@ -1,0 +1,12 @@
+node_modules/
+dist-web/
+dist-pc/
+android/
+uploads/
+tokens.txt
+*.keystore
+*.jks
+.env
+.env.*
+__pycache__/
+.DS_Store

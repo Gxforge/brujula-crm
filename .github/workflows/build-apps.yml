@@ -1,0 +1,139 @@
+name: Build Android APK & Windows PC App
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    name: Compilar APK Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configurar Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar dependencias y preparar web
+        run: |
+          npm install --no-audit --no-fund
+          npm run prepare:web
+
+      - name: Generar proyecto Android con Capacitor
+        run: |
+          npx cap add android
+          npx cap sync android
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26
+          cp -r assets/android-res/* android/app/src/main/res/
+
+      - name: Compilar y firmar APK Release (v1 + v2)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+          BUILD_TOOLS_DIR="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)"
+          UNSIGNED_APK="app/build/outputs/apk/release/app-release-unsigned.apk"
+          ALIGNED_APK="app/build/outputs/apk/release/app-release-aligned.apk"
+
+          keytool -genkeypair -v \
+            -keystore release.keystore \
+            -alias brujula \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass brujula2026 \
+            -keypass brujula2026 \
+            -dname "CN=Brujula CRM, OU=Gxforge, O=Gxforge, L=Havana, S=Havana, C=CU"
+
+          "$BUILD_TOOLS_DIR/zipalign" -v -p 4 "$UNSIGNED_APK" "$ALIGNED_APK"
+          mkdir -p ../release-out
+          "$BUILD_TOOLS_DIR/apksigner" sign \
+            --ks release.keystore \
+            --ks-key-alias brujula \
+            --ks-pass pass:brujula2026 \
+            --key-pass pass:brujula2026 \
+            --out ../release-out/Brujula-CRM-Android.apk \
+            "$ALIGNED_APK"
+
+          "$BUILD_TOOLS_DIR/apksigner" verify --verbose ../release-out/Brujula-CRM-Android.apk
+
+      - name: Subir artefacto APK Android
+        uses: actions/upload-artifact@v4
+        with:
+          name: Brujula-CRM-Android-APK
+          path: release-out/Brujula-CRM-Android.apk
+          if-no-files-found: error
+
+  build-pc:
+    name: Compilar Ejecutables PC (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependencias y compilar .exe
+        run: |
+          npm install --no-audit --no-fund
+          npm run build:pc
+
+      - name: Subir artefactos PC Windows (.exe)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Brujula-CRM-Windows-PC
+          path: |
+            dist-pc/Brujula-CRM-PC-Portable.exe
+            dist-pc/Brujula-CRM-PC-Setup.exe
+          if-no-files-found: error
+
+  publish-release:
+    name: Publicar Release con APK y EXE
+    needs: [build-android, build-pc]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar artefactos compilados
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Reunir binarios finales
+        run: |
+          mkdir -p release-files
+          find artifacts -type f \( -name "*.apk" -o -name "*.exe" \) -exec cp {} release-files/ \;
+          ls -lh release-files/
+
+      - name: Publicar en GitHub Releases (v1.0.0)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: "Brújula CRM v1.0.0 · Android (.apk) y Windows PC (.exe)"
+          body: |
+            ### Instaladores compilados automáticamente por GitHub Actions
+            - **Android (Teléfono / Tablet):** Descarga e instala `Brujula-CRM-Android.apk`.
+            - **PC Windows (Portable sin instalación):** Abre directamente `Brujula-CRM-PC-Portable.exe`.
+            - **PC Windows (Instalador completo):** Ejecuta `Brujula-CRM-PC-Setup.exe` para crear accesos directos en Escritorio e Inicio.
+          files: release-files/*
+          prerelease: false
+          make_latest: true

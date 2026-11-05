@@ -1,0 +1,59 @@
+{
+  "name": "brujula-crm",
+  "version": "1.0.0",
+  "description": "CRM modular para prospección de negocios, importación Excel/CSV y gestión comercial por WhatsApp",
+  "main": "electron/main.cjs",
+  "author": "Gxforge",
+  "license": "MIT",
+  "scripts": {
+    "prepare:web": "node scripts/prepare-web.mjs",
+    "electron:start": "electron .",
+    "build:pc": "electron-builder --win nsis portable --x64 --publish never"
+  },
+  "dependencies": {
+    "@capacitor/android": "6.2.0",
+    "@capacitor/core": "6.2.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "6.2.0",
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.gxforge.brujulacrm",
+    "productName": "Brujula CRM",
+    "directories": {
+      "output": "dist-pc"
+    },
+    "files": [
+      "index.html",
+      "styles/**/*",
+      "src/**/*",
+      "assets/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        },
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "Brujula-CRM-PC-Portable.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "artifactName": "Brujula-CRM-PC-Setup.exe"
+    }
+  }
+}
