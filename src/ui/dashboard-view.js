@@ -15,7 +15,6 @@ export function renderDashboard(store, handlers, appState) {
   $('#mTotal').textContent = total; $('#mPending').textContent = countBy('Pendiente'); $('#mContacted').textContent = countBy('Contactado');
   $('#mProjects').textContent = totalProjects; $('#mProjectsNote').textContent = totalQuoted ? `$${totalQuoted.toLocaleString('es-ES')} cotizados` : 'pedidos';
   $('#mConverted').textContent = countBy('Convertido'); $('#mProvinces').textContent = `${activeProvinces.size}/16`;
-  const banner = $('#seedBanner'); if (banner) banner.style.display = total === 0 ? 'flex' : 'none';
   const maxStage = Math.max(total, 1); $('#funnelTotal').textContent = `${total} prospectos`;
   $('#pipeline').innerHTML = STAGES.map((st) => { const n = countBy(st.id); const pct = Math.round((n / maxStage) * 100); return `<div class="stage"><span class="stage-label">${esc(st.label)}</span><div class="stage-bar"><i style="background:${st.color};width:${pct}%"></i></div><strong>${n}</strong></div>`; }).join('');
   const provCounts = {}; clients.forEach((c) => { const p = c.province || 'Sin provincia'; provCounts[p] = (provCounts[p] || 0) + 1; });
@@ -33,7 +32,7 @@ export function renderDashboard(store, handlers, appState) {
     followEl.onclick = (e) => { const row = e.target.closest('[data-open-id]'); if (row) handlers.openDetail(row.dataset.openId); };
   }
   const logs = store.activities.slice(0, 7);
-  $('#activity').innerHTML = logs.length ? logs.map((it) => `<div class="activity-row"><div class="avatar">${esc(initials(it.subject))}</div><div><p><b>${esc(it.subject)}</b> · ${esc(it.action)}</p><time>${esc(relativeTime(it.at))}</time></div></div>`).join('') : `<div style="padding:22px 4px;text-align:center;color:var(--muted);font-size:12.5px">Importa tu tabla o carga los 35 de Cuba.</div>`;
+  $('#activity').innerHTML = logs.length ? logs.map((it) => `<div class="activity-row"><div class="avatar">${esc(initials(it.subject))}</div><div><p><b>${esc(it.subject)}</b> · ${esc(it.action)}</p><time>${esc(relativeTime(it.at))}</time></div></div>`).join('') : `<div style="padding:22px 4px;text-align:center;color:var(--muted);font-size:12.5px">Importa tu tabla para comenzar. Base vacía.</div>`;
   // Extras M07-M15 M34-M35
   const gb = $('#goalsBar'); if (gb && appState) gb.innerHTML = goalsHTML(appState, store);
   const mrr = $('#mrrBox'); if (mrr && appState) mrr.innerHTML = renderMRR(store, appState);

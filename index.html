@@ -31,7 +31,7 @@
 <div class="content">
 <section class="page active" id="page-dashboard">
 <div class="hero"><div><h1>Panel de Prospección y Proyectos</h1><p>Controla prospectos, proyectos, cobranza, renovaciones y metas.</p></div><div class="hero-right"><span class="date-chip" id="today"></span></div></div>
-<div id="seedBanner" class="panel" style="padding:16px 20px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(135deg,#eefaf7,#fffdfa)"><div><strong style="font-size:14px">¿Cargar los 35 negocios de Cuba?</strong><p style="margin:3px 0 0;font-size:12.5px;color:var(--muted)">15 provincias + Isla, verificados sin El Yerro Menú.</p></div><button class="btn btn-aqua" id="seedBannerBtn">Cargar 35 prospectos</button></div>
+
 <div class="metrics">
 <div class="metric"><div class="metric-label">Total prospectos <i class="metric-dot" style="background:#94a3b8"></i></div><div class="metric-value" id="mTotal">0</div><div class="metric-note">cartera</div></div>
 <div class="metric"><div class="metric-label">Por contactar <i class="metric-dot" style="background:var(--sun)"></i></div><div class="metric-value" id="mPending">0</div><div class="metric-note">listos</div></div>
@@ -70,8 +70,8 @@
 <div id="projectsContainer"></div>
 </section>
 <section class="page" id="page-import">
-<div class="hero"><div><h1>Importación Inteligente</h1><p>Excel (.xlsx), CSV, JSON, pegado y extractor M40.</p></div><button class="btn btn-aqua" id="importSeedBtn">Cargar 35 Cuba (1 clic)</button></div>
-<div class="import-grid"><div class="import-card"><div class="import-top"><h2>1. Sube archivo Excel, CSV o JSON</h2><p>Detecta proyectos, pagos y encabezados.</p></div><label class="dropzone" id="dropzone" for="fileInput"><div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V3M7 8l5-5 5 5"/><path d="M4 15v5h16v-5"/></svg></div><b>Arrastra .xlsx, .csv o .json</b><span style="font-size:11.5px;color:#8490a3;margin-top:4px">Soporta prospectos_negocios_cuba_sin_yerromenu.xlsx</span></label><input type="file" id="fileInput" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.json" hidden /><div id="importBanner" class="status-banner"></div></div>
+<div class="hero"><div><h1>Importación Inteligente</h1><p>Excel (.xlsx), CSV, JSON, pegado y extractor M40.</p></div></div>
+<div class="import-grid"><div class="import-card"><div class="import-top"><h2>1. Sube archivo Excel, CSV o JSON</h2><p>Detecta proyectos, pagos y encabezados.</p></div><label class="dropzone" id="dropzone" for="fileInput"><div class="upload-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V3M7 8l5-5 5 5"/><path d="M4 15v5h16v-5"/></svg></div><b>Arrastra .xlsx, .csv o .json</b><span style="font-size:11.5px;color:#8490a3;margin-top:4px">Soporta cualquier Excel / CSV exportado</span></label><input type="file" id="fileInput" accept=".xlsx,.xlsm,.csv,.tsv,.txt,.json" hidden /><div id="importBanner" class="status-banner"></div></div>
 <div class="import-card"><div class="import-top"><h2>2. Pega filas desde Excel / Chat</h2><p>Copia celdas y pega aquí.</p></div><div class="paste-box" style="padding-top:18px"><textarea id="pasteTextarea" placeholder="Nombre;Provincia;Tel;Proyecto"></textarea><div style="display:flex;justify-content:flex-end;margin-top:10px"><button type="button" class="btn btn-secondary" id="parsePasteBtn">Analizar →</button></div></div></div></div>
 <div id="mapperContainer" style="display:none"></div>
 <div id="extractorBox" style="margin-top:14px"></div>
@@ -82,7 +82,7 @@
 <div class="panel settings-card"><h2 style="margin:0 0 12px;font-size:16px">Exportación e inicialización</h2>
 <div class="settings-row"><div><b>Descargar Excel (.xlsx)</b><div style="font-size:12px;color:var(--muted)">Incluye proyectos y abonos.</div></div><button class="btn btn-primary" id="exportXlsxSettingsBtn">Exportar .xlsx</button></div>
 <div class="settings-row"><div><b>Respaldo JSON</b><div style="font-size:12px;color:var(--muted)">Clientes + catálogo + historial.</div></div><button class="btn btn-secondary" id="exportJsonSettingsBtn">Descargar JSON</button></div>
-<div class="settings-row"><div><b>Recargar 35 Cuba</b><div style="font-size:12px;color:var(--muted)">Fusiona sin borrar.</div></div><button class="btn btn-aqua" id="seedSettingsBtn">Fusionar 35</button></div>
+
 </div>
 <div class="panel settings-card"><h2 style="margin:0 0 8px;font-size:16px;color:#a33b40">Zona limpieza</h2><div class="settings-row"><div><b>Vaciar base local</b><div style="font-size:12px;color:var(--muted)">Elimina clientes de este dispositivo.</div></div><button class="btn delete-btn" id="clearAllBtn">Vaciar datos</button></div></div>
 </div>

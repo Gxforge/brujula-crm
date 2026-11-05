@@ -62,9 +62,7 @@ export class ImportView {
       this.loadSheetsIntoMapper([{ name: 'Datos pegados', rows }], false);
     });
 
-    $('#importSeedBtn')?.addEventListener('click', () => {
-      this.handlers.loadCubaSeed();
-    });
+
   }
 
   setBanner(type, title, detail) {

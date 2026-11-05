@@ -1,7 +1,6 @@
 import { $, $$, showToast } from './core/utils.js';
 import { store } from './core/store.js';
 import { appState } from './core/app-state.js';
-import { CUBA_SEED_PROSPECTS } from './data/seed-cuba.js';
 import { exportClientsCSV, exportClientsXLSX, exportFullBackupJSON } from './services/exporter.js';
 import { renderDashboard } from './ui/dashboard-view.js';
 import { ClientsView } from './ui/clients-view.js';
@@ -17,10 +16,6 @@ function goto(page) {
   $$('.nav button[data-page]').forEach((btn) => btn.classList.toggle('active', btn.dataset.page === page));
   const c = $('#crumb'); if (c) c.textContent = PAGE_TITLES[page] || 'Resumen';
   window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-function loadCubaSeed() {
-  const { added, updated } = store.importBatch(CUBA_SEED_PROSPECTS, 'Cuba 16 regiones');
-  appState.pushSnap(store.clients); showToast('Cuba cargada', `${added} añadidos · ${updated} actualizados`); goto('clients');
 }
 function renderSidebarCounters() {
   const n = store.clients.length; const pCount = store.clients.reduce((a, c) => a + (c.projects?.length || 0), 0);
@@ -67,7 +62,7 @@ function init() {
   const d = new Date(); const dt = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); if ($('#today')) $('#today').textContent = dt.charAt(0).toUpperCase() + dt.slice(1);
   handleUrlLeads(); updateStreak();
   const modals = new ModalsView(store);
-  const shared = { goto, loadCubaSeed, openForm: (c = null) => modals.openForm(c), openFormWithService: (svc) => modals.openForm(null, svc), openServiceForm: (svc = null) => modals.openServiceForm(svc), openDetail: (id) => modals.openDetail(id), filterByProvince: (prov) => { goto('clients'); clientsView.setProvinceFilter(prov); } };
+  const shared = { goto, openForm: (c = null) => modals.openForm(c), openFormWithService: (svc) => modals.openForm(null, svc), openServiceForm: (svc = null) => modals.openServiceForm(svc), openDetail: (id) => modals.openDetail(id), filterByProvince: (prov) => { goto('clients'); clientsView.setProvinceFilter(prov); } };
   const clientsView = new ClientsView(store, shared); const projectsView = new ProjectsView(store, shared); new ImportView(store, shared);
   const refreshAll = () => { renderSidebarCounters(); renderDashboard(store, shared, appState); clientsView.render(appState); projectsView.render(appState); renderSettingsExtras(); };
   store.subscribe(refreshAll); appState.subscribe(refreshAll); refreshAll(); initFieldTools(store, shared);
@@ -78,7 +73,7 @@ function init() {
   import('./services/automation.js').then((m) => { try { m.scheduleAutomation(store, appState, 60); const hits = m.runAutomationCheck(store, appState, true); if (hits.length) console.log('[Brújula] automatizaciones detectadas:', hits.length); } catch(e){ console.warn('auto', e); } });
   $$('.nav button[data-page]').forEach((btn) => btn.addEventListener('click', () => goto(btn.dataset.page)));
   $('#headerImportBtn')?.addEventListener('click', () => goto('import')); $('#newClientBtn')?.addEventListener('click', () => modals.openForm()); $('#newClientBtn2')?.addEventListener('click', () => modals.openForm());
-  $('#viewClientsBtn')?.addEventListener('click', () => goto('clients')); $('#seedBannerBtn')?.addEventListener('click', loadCubaSeed); $('#seedSettingsBtn')?.addEventListener('click', loadCubaSeed);
+  $('#viewClientsBtn')?.addEventListener('click', () => goto('clients'));
   $('#burstBtn')?.addEventListener('click', () => { import('./ui/cadence-panel.js').then((m) => { let wrap = document.getElementById('burstMount'); if (!wrap) { wrap = document.createElement('div'); wrap.id = 'burstMount'; document.body.appendChild(wrap); } wrap.innerHTML = m.renderBurstUI(store, shared); wrap.querySelector('#burstMask')?.classList.add('open'); m.initBurst(store, shared); }); });
   $('#undoBtn')?.addEventListener('click', () => { if (store.undoLast()) showToast('Deshecho', 'Restaurado.'); });
   const ensure = () => { if (!store.clients.length) { showToast('Base vacía', 'Importa primero.', true); return false; } return true; };
