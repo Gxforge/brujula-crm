@@ -30,10 +30,19 @@ class _ClientsScreenState extends State<ClientsScreen> {
   Widget build(BuildContext context) {
     final q = search.text.trim().toLowerCase();
     final filtered = clients.where((c) => '${c.name} ${c.phone} ${c.province} ${c.category}'.toLowerCase().contains(q)).toList();
-    return Scaffold(body: loading ? const Center(child: CircularProgressIndicator()) : Column(children: [
-      Padding(padding: const EdgeInsets.fromLTRB(16, 16, 16, 8), child: Row(children: [Expanded(child: TextField(controller: search, onChanged: (_) => setState(() {}), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Buscar clientes', border: OutlineInputBorder()))), PopupMenuButton<String>(tooltip: 'Importar / exportar', onSelected: (v) => v == 'import' ? _importXlsx() : _exportXlsx(), itemBuilder: (_) => const [PopupMenuItem(value: 'import', child: Text('Importar Excel')), PopupMenuItem(value: 'export', child: Text('Exportar Excel'))], icon: const Icon(Icons.more_vert))]),
-      Expanded(child: filtered.isEmpty ? _empty(context) : ListView.builder(padding: const EdgeInsets.fromLTRB(12, 0, 12, 88), itemCount: filtered.length, itemBuilder: (_, i) => _tile(filtered[i]))),
-    ]), floatingActionButton: FloatingActionButton.extended(onPressed: () => _edit(), icon: const Icon(Icons.person_add_alt_1), label: const Text('Añadir')));
+    return Scaffold(
+      body: loading ? const Center(child: CircularProgressIndicator()) : Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(children: [
+            Expanded(child: TextField(controller: search, onChanged: (_) => setState(() {}), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Buscar clientes', border: OutlineInputBorder()))),
+            PopupMenuButton<String>(tooltip: 'Importar / exportar', onSelected: (v) => v == 'import' ? _importXlsx() : _exportXlsx(), itemBuilder: (_) => const [PopupMenuItem(value: 'import', child: Text('Importar Excel')), PopupMenuItem(value: 'export', child: Text('Exportar Excel'))], icon: const Icon(Icons.more_vert)),
+          ]),
+        ),
+        Expanded(child: filtered.isEmpty ? _empty(context) : ListView.builder(padding: const EdgeInsets.fromLTRB(12, 0, 12, 88), itemCount: filtered.length, itemBuilder: (_, i) => _tile(filtered[i]))),
+      ]),
+      floatingActionButton: FloatingActionButton.extended(onPressed: () => _edit(), icon: const Icon(Icons.person_add_alt_1), label: const Text('Añadir')),
+    );
   }
   Widget _empty(BuildContext context) => Center(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.people_outline, size: 48), const SizedBox(height: 12), Text(clients.isEmpty ? 'Aún no hay clientes' : 'No encontramos coincidencias', style: Theme.of(context).textTheme.titleLarge), const SizedBox(height: 6), const Text('Agrega un cliente para comenzar.')])));
   Widget _tile(ClientRecord c) => Card(margin: const EdgeInsets.symmetric(vertical: 5), child: ListTile(leading: CircleAvatar(child: Text(c.name.isEmpty ? '?' : c.name.substring(0, 1).toUpperCase())), title: Text(c.name), subtitle: Text([c.category, c.phone, c.province].where((x) => x.isNotEmpty).join(' · ')), trailing: PopupMenuButton<String>(onSelected: (v) { if (v == 'edit') _edit(c); if (v == 'delete') _confirmDelete(c); }, itemBuilder: (_) => const [PopupMenuItem(value: 'edit', child: Text('Editar')), PopupMenuItem(value: 'delete', child: Text('Eliminar'))])));
@@ -60,7 +69,7 @@ class _ClientsScreenState extends State<ClientsScreen> {
       String cell(List<Data?> row, int index) {
         if (index < 0 || index >= row.length) return '';
         final value = row[index]?.value;
-        if (value is TextCellValue) return value.value.trim();
+        if (value is TextCellValue) return value.value.text?.trim() ?? '';
         if (value is IntCellValue) return value.value.toString();
         if (value is DoubleCellValue) return value.value.toString();
         if (value is DateCellValue) return value.asDateTimeLocal().toIso8601String().split('T').first;

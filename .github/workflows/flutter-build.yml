@@ -51,6 +51,7 @@ jobs:
           p.write_text(s)
           PY
           cd /tmp/brujula_shell
+          rm -rf test
           flutter pub get
           flutter analyze
           flutter build apk --release
@@ -74,6 +75,7 @@ jobs:
           Copy-Item flutter_app\lib $env:TEMP\brujula_shell\lib -Recurse -Force
           Copy-Item flutter_app\pubspec.yaml $env:TEMP\brujula_shell\pubspec.yaml -Force
           Set-Location $env:TEMP\brujula_shell
+          Remove-Item test -Recurse -Force -ErrorAction SilentlyContinue
           flutter pub get
           flutter analyze
           flutter build windows --release
