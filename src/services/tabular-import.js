@@ -11,7 +11,11 @@ export const IMPORT_FIELDS = [
   { key: 'social', label: 'Red Social', hints: ['redsocial', 'plataforma', 'canal', 'red', 'origen'] },
   { key: 'evidenceUrl', label: 'Enlace Perfil / Post', hints: ['linkdeevidencia', 'enlacedeevidencia', 'link', 'enlace', 'url', 'perfil', 'evidenciafb'] },
   { key: 'evidence', label: 'Evidencia / Descripción', hints: ['evidenciadetectada', 'evidencia', 'publicacion', 'bio', 'motivo', 'detalle', 'observacion'] },
-  { key: 'catalogCheck', label: 'Filtro Catálogo (El Yerro)', hints: ['filtroelyerromenu', 'yerromenu', 'yerro', 'filtro', 'catalogo'] },
+  { key: 'catalogCheck', label: 'Filtro Catálogo (El Yerro)', hints: ['filtroelyerromenu', 'yerromenu', 'yerro', 'filtro'] },
+  { key: 'desiredProject', label: 'Proyecto Solicitado', hints: ['proyectosolicitado', 'proyecto', 'servicio', 'paquete', 'productointeres'] },
+  { key: 'value', label: 'Presupuesto / Valor', hints: ['presupuestototal', 'presupuesto', 'precio', 'valor', 'inversion', 'monto'] },
+  { key: 'paid', label: 'Abonado / Anticipo', hints: ['abonado', 'anticipo', 'pagado', 'cobrado'] },
+  { key: 'requirements', label: 'Requisitos del Proyecto', hints: ['requisitosdelproyecto', 'requisitos', 'alcance', 'requerimientos'] },
   { key: 'status', label: 'Estado de Gestión', hints: ['estadodegestion', 'estadogestion', 'etapa', 'estatus'] },
   { key: 'notes', label: 'Notas Privadas', hints: ['notasprivadas', 'notas', 'comentarios', 'seguimiento'] }
 ];
@@ -181,6 +185,10 @@ export function buildRecordsFromSheet(rows, headerRowIdx, mapping) {
         evidenceUrl: cleanUrl,
         evidence: getVal('evidence'),
         catalogCheck: getVal('catalogCheck') || 'NO está (Verificado)',
+        desiredProject: getVal('desiredProject'),
+        value: Number(String(getVal('value')).replace(/[^0-9.]/g, '')) || 0,
+        paid: Number(String(getVal('paid')).replace(/[^0-9.]/g, '')) || 0,
+        requirements: getVal('requirements'),
         status: normalizeStatus(getVal('status')),
         notes: getVal('notes')
       };

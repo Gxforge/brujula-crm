@@ -1,15 +1,6 @@
-import {
-  $,
-  CUBA_PROVINCES,
-  STAGES,
-  buildWhatsAppUrl,
-  esc,
-  formatDate,
-  initials,
-  openExternalUrl,
-  showToast,
-  statusLabel
-} from '../core/utils.js';
+import { $, CUBA_PROVINCES, STAGES, esc, norm, showToast } from '../core/utils.js';
+import { CURRENCIES, PROJECT_STAGES } from '../data/project-catalog.js';
+import { renderClientDetailModal } from './detail-modal.js';
 
 export class ModalsView {
   constructor(store) {
@@ -20,13 +11,31 @@ export class ModalsView {
   }
 
   populateStaticOptions() {
-    const provList = $('#provinceDatalist');
-    if (provList) {
-      provList.innerHTML = CUBA_PROVINCES.map((p) => `<option value="${esc(p)}"></option>`).join('');
+    if ($('#provinceDatalist')) {
+      $('#provinceDatalist').innerHTML = CUBA_PROVINCES.map((p) => `<option value="${esc(p)}"></option>`).join('');
     }
-    const statusSel = $('#fStatus');
-    if (statusSel) {
-      statusSel.innerHTML = STAGES.map((s) => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join('');
+    if ($('#fStatus')) {
+      $('#fStatus').innerHTML = STAGES.map((s) => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join('');
+    }
+    if ($('#fProjStage')) {
+      $('#fProjStage').innerHTML = PROJECT_STAGES.map((s) => `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join('');
+    }
+    if ($('#fCurrency')) {
+      $('#fCurrency').innerHTML = CURRENCIES.map((c) => `<option value="${c}">${c}</option>`).join('');
+    }
+    if ($('#svcCurrency')) {
+      $('#svcCurrency').innerHTML = CURRENCIES.map((c) => `<option value="${c}">${c}</option>`).join('');
+    }
+  }
+
+  refreshProjectDatalist() {
+    if ($('#projectDatalist')) {
+      $('#projectDatalist').innerHTML = this.store.services.map((s) => `<option value="${esc(s.name)}"></option>`).join('');
+    }
+    const existingSel = $('#fExistingClientPick');
+    if (existingSel) {
+      existingSel.innerHTML = `<option value="">-- Nuevo cliente (llenar abajo) --</option>` +
+        this.store.clients.map((c) => `<option value="${esc(c.id)}">${esc(c.name)} (${esc(c.province || 'Cuba')})</option>`).join('');
     }
   }
 
@@ -36,19 +45,43 @@ export class ModalsView {
     });
 
     document.querySelectorAll('.modal-layer').forEach((layer) => {
-      layer.addEventListener('click', (e) => {
-        if (e.target === layer) this.close(layer.id);
-      });
+      layer.addEventListener('click', (e) => { if (e.target === layer) this.close(layer.id); });
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        document.querySelectorAll('.modal-layer.open').forEach((l) => this.close(l.id));
+      if (e.key === 'Escape') document.querySelectorAll('.modal-layer.open').forEach((l) => this.close(l.id));
+    });
+
+    $('#fDesiredProject')?.addEventListener('change', (e) => {
+      const svc = this.store.services.find((s) => norm(s.name) === norm(e.target.value));
+      if (svc && !Number($('#fValue').value)) {
+        $('#fValue').value = svc.price;
+        $('#fCurrency').value = svc.currency;
+        if ($('#fProjStage').value === 'Sin proyecto') $('#fProjStage').value = 'Solicitado';
+      }
+    });
+
+    $('#fExistingClientPick')?.addEventListener('change', (e) => {
+      const c = this.store.getById(e.target.value);
+      if (c) {
+        const keepProj = $('#fDesiredProject').value;
+        const keepVal = $('#fValue').value;
+        const keepCur = $('#fCurrency').value;
+        this.fillClientFields(c);
+        if (keepProj) {
+          $('#fDesiredProject').value = keepProj;
+          $('#fValue').value = keepVal;
+          $('#fCurrency').value = keepCur;
+          $('#fProjStage').value = 'Solicitado';
+        }
       }
     });
 
     $('#clientForm')?.addEventListener('submit', (e) => this.handleFormSubmit(e));
     $('#deleteClientBtn')?.addEventListener('click', () => this.handleDeleteCurrent());
+    $('#serviceForm')?.addEventListener('submit', (e) => this.handleServiceSubmit(e));
+    $('#deleteServiceBtn')?.addEventListener('click', () => this.handleDeleteService());
+
     $('#editFromDetailBtn')?.addEventListener('click', () => {
       const c = this.store.getById(this.activeClientId);
       this.close('detailLayer');
@@ -60,8 +93,8 @@ export class ModalsView {
     document.getElementById(layerId)?.classList.remove('open');
   }
 
-  openForm(client = null) {
-    $('#formTitle').textContent = client ? 'Editar cliente' : 'Añadir nuevo cliente';
+  fillClientFields(client) {
+    const firstProj = client?.projects?.[0];
     $('#clientId').value = client?.id || '';
     $('#fName').value = client?.name || '';
     $('#fProvince').value = client?.province || '';
@@ -72,11 +105,32 @@ export class ModalsView {
     $('#fSocial').value = client?.social || 'Facebook';
     $('#fStatus').value = client?.status || 'Pendiente';
     $('#fDate').value = client?.nextDate || '';
+    $('#fDesiredProject').value = firstProj?.title || client?.desiredProject || '';
+    $('#fProjStage').value = firstProj?.stage || client?.projectStage || 'Sin proyecto';
+    $('#fValue').value = firstProj?.price ?? client?.value ?? '';
+    $('#fPaid').value = firstProj?.paid ?? client?.paid ?? '';
+    $('#fCurrency').value = firstProj?.currency || client?.currency || 'USD';
+    $('#fDeadline').value = firstProj?.deadline || client?.projectDeadline || '';
+    $('#fRequirements').value = firstProj?.notes || client?.requirements || '';
     $('#fEvidenceUrl').value = client?.evidenceUrl || '';
     $('#fEvidence').value = client?.evidence || '';
     $('#fNotes').value = client?.notes || '';
-    $('#deleteClientBtn').style.display = client ? 'inline-flex' : 'none';
+  }
 
+  openForm(client = null, presetService = null) {
+    this.refreshProjectDatalist();
+    $('#formTitle').textContent = client ? 'Editar cliente y proyecto' : (presetService ? `Asignar "${presetService.name}"` : 'Añadir nuevo cliente');
+    $('#existingPickRow').style.display = !client && presetService && this.store.clients.length ? 'block' : 'none';
+    this.fillClientFields(client);
+
+    if (presetService && !client) {
+      $('#fDesiredProject').value = presetService.name;
+      $('#fProjStage').value = 'Solicitado';
+      $('#fValue').value = presetService.price;
+      $('#fCurrency').value = presetService.currency;
+    }
+
+    $('#deleteClientBtn').style.display = client ? 'inline-flex' : 'none';
     $('#formLayer').classList.add('open');
     setTimeout(() => $('#fName')?.focus(), 80);
   }
@@ -84,13 +138,29 @@ export class ModalsView {
   handleFormSubmit(e) {
     e.preventDefault();
     const name = $('#fName').value.trim();
-    if (!name) {
-      showToast('Nombre obligatorio', 'Escribe el nombre del negocio.', true);
-      return;
+    if (!name) return showToast('Nombre obligatorio', 'Escribe el nombre del negocio.', true);
+
+    const projTitle = $('#fDesiredProject').value.trim();
+    const existingId = $('#clientId').value || undefined;
+    const existing = existingId ? this.store.getById(existingId) : null;
+
+    // Si eligió un cliente existente desde el catálogo y ya tenía otro proyecto, añade el nuevo proyecto a su lista
+    if (existing && $('#existingPickRow').style.display === 'block' && projTitle) {
+      this.store.saveClientProject(existing.id, {
+        title: projTitle,
+        stage: $('#fProjStage').value === 'Sin proyecto' ? 'Solicitado' : $('#fProjStage').value,
+        price: Number($('#fValue').value || 0),
+        paid: Number($('#fPaid').value || 0),
+        currency: $('#fCurrency').value,
+        deadline: $('#fDeadline').value,
+        notes: $('#fRequirements').value.trim()
+      });
+      this.close('formLayer');
+      return showToast('Proyecto añadido al cliente', `${existing.name} · ${projTitle}`);
     }
 
     const { client, isEdit } = this.store.upsertOne({
-      id: $('#clientId').value || undefined,
+      id: existingId,
       name,
       province: $('#fProvince').value.trim(),
       type: $('#fType').value.trim(),
@@ -100,143 +170,76 @@ export class ModalsView {
       social: $('#fSocial').value.trim(),
       status: $('#fStatus').value,
       nextDate: $('#fDate').value,
+      primaryProjectTitle: projTitle,
+      projectStage: projTitle && $('#fProjStage').value === 'Sin proyecto' ? 'Solicitado' : $('#fProjStage').value,
+      value: Number($('#fValue').value || 0),
+      paid: Number($('#fPaid').value || 0),
+      currency: $('#fCurrency').value,
+      projectDeadline: $('#fDeadline').value,
+      requirements: $('#fRequirements').value.trim(),
       evidenceUrl: $('#fEvidenceUrl').value.trim(),
       evidence: $('#fEvidence').value.trim(),
       notes: $('#fNotes').value.trim()
     });
 
     this.close('formLayer');
-    showToast(isEdit ? 'Cliente actualizado' : 'Cliente añadido', client.name);
+    showToast(isEdit ? 'Cliente actualizado' : 'Cliente registrado', client.name);
   }
 
   handleDeleteCurrent() {
     const id = $('#clientId').value;
     const c = this.store.getById(id);
-    if (!c) return;
-    if (confirm(`¿Eliminar definitivamente a "${c.name}"?`)) {
+    if (c && confirm(`¿Eliminar definitivamente a "${c.name}"?`)) {
       this.store.deleteMany([id]);
       this.close('formLayer');
       showToast('Cliente eliminado', c.name);
     }
   }
 
-  fillTemplate(tplBody, client) {
-    const cleanContact = client.contact && !/administraci|@/i.test(client.contact)
-      ? client.contact.split('(')[0].trim()
-      : 'equipo';
-    return tplBody
-      .replace(/\{negocio\}/g, client.name || 'su negocio')
-      .replace(/\{contacto\}/g, cleanContact)
-      .replace(/\{provincia\}/g, client.province || 'Cuba')
-      .replace(/\{rubro\}/g, client.type || 'su sector');
+  openServiceForm(svc = null) {
+    $('#svcFormTitle').textContent = svc ? 'Editar paquete del catálogo' : 'Nuevo paquete / tipo de proyecto';
+    $('#svcId').value = svc?.id || '';
+    $('#svcName').value = svc?.name || '';
+    $('#svcCategory').value = svc?.category || 'Catálogos';
+    $('#svcPrice').value = svc?.price ?? 80;
+    $('#svcCurrency').value = svc?.currency || 'USD';
+    $('#svcDays').value = svc?.deliveryDays ?? 5;
+    $('#svcSummary').value = svc?.summary || '';
+    $('#svcDeliverables').value = (svc?.deliverables || []).join('\n');
+    $('#deleteServiceBtn').style.display = svc ? 'inline-flex' : 'none';
+    $('#serviceLayer').classList.add('open');
+  }
+
+  handleServiceSubmit(e) {
+    e.preventDefault();
+    const name = $('#svcName').value.trim();
+    if (!name) return;
+    this.store.upsertService({
+      id: $('#svcId').value || undefined,
+      name,
+      category: $('#svcCategory').value.trim(),
+      price: Number($('#svcPrice').value || 0),
+      currency: $('#svcCurrency').value,
+      deliveryDays: Number($('#svcDays').value || 3),
+      summary: $('#svcSummary').value.trim(),
+      deliverables: $('#svcDeliverables').value
+    });
+    this.close('serviceLayer');
+    showToast('Catálogo actualizado', name);
+  }
+
+  handleDeleteService() {
+    const id = $('#svcId').value;
+    if (id && confirm('¿Quitar este paquete del catálogo de servicios?')) {
+      this.store.deleteService(id);
+      this.close('serviceLayer');
+      showToast('Paquete eliminado');
+    }
   }
 
   openDetail(id) {
-    const c = this.store.getById(id);
-    if (!c) return;
     this.activeClientId = id;
-
-    const firstTpl = this.store.templates[0];
-    const initialPitch = firstTpl ? this.fillTemplate(firstTpl.body, c) : '';
-    const directWa = buildWhatsAppUrl(c.phone);
-
-    $('#detailContent').innerHTML = `
-      <div class="detail-head">
-        <div class="client-initial">${esc(initials(c.name))}</div>
-        <div style="flex:1">
-          <h3 style="margin:0 0 3px;font-size:18px">${esc(c.name)}</h3>
-          <p style="margin:0;color:var(--muted);font-size:12.5px">
-            ${esc(c.type || 'Sin rubro')} · ${esc(c.province || 'Sin provincia')}
-            ${c.social ? ` · <b>${esc(c.social)}</b>` : ''}
-          </p>
-        </div>
-        <span class="badge st-${esc(c.status)}">${esc(statusLabel(c.status))}</span>
-      </div>
-
-      <div class="detail-section">
-        <h4>Datos de contacto y verificación</h4>
-        <div class="detail-grid">
-          <div class="detail-item">
-            <small>Contacto / Persona</small>
-            <span>${esc(c.contact || 'No especificado')}</span>
-          </div>
-          <div class="detail-item">
-            <small>Teléfono / WhatsApp</small>
-            ${directWa ? `<a href="${esc(directWa)}" target="_blank" rel="noopener"><b>${esc(c.phone)} ↗</b></a>` : `<span>${esc(c.phone || 'Sin teléfono')}</span>`}
-          </div>
-          <div class="detail-item">
-            <small>Ubicación</small>
-            <span>${esc(c.address || c.province || 'No registrada')}</span>
-          </div>
-          <div class="detail-item">
-            <small>Publicación / Evidencia</small>
-            ${c.evidenceUrl ? `<a href="${esc(c.evidenceUrl)}" target="_blank" rel="noopener">Abrir perfil / post original ↗</a>` : '<span>Sin enlace</span>'}
-          </div>
-          <div class="detail-item">
-            <small>Filtro El Yerro Menú</small>
-            <span style="color:#0f7666;font-weight:700">${esc(c.catalogCheck || 'NO está (Verificado)')}</span>
-          </div>
-          <div class="detail-item">
-            <small>Próximo seguimiento</small>
-            <span>${c.nextDate ? esc(formatDate(c.nextDate)) : 'Sin fecha asignada'}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="detail-section">
-        <h4>Evidencia de por qué necesita catálogo</h4>
-        <div class="notes-box">${esc(c.evidence || 'Sin evidencia registrada.')}</div>
-      </div>
-
-      <div class="detail-section">
-        <h4>Asistente de Propuesta por WhatsApp</h4>
-        <div class="wa-composer">
-          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap">
-            <label style="font-size:11.5px;font-weight:800;color:#14532d">Plantilla de mensaje:</label>
-            <select id="waTplSelect" style="height:32px;border:1px solid #a7dec0;border-radius:7px;padding:0 8px;font-size:12px;background:#fff">
-              ${this.store.templates.map((t, i) => `<option value="${i}">${esc(t.name)}</option>`).join('')}
-            </select>
-          </div>
-          <textarea id="waPitchText">${esc(initialPitch)}</textarea>
-          <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-            <button type="button" class="btn btn-secondary" id="copyPitchBtn" style="padding:7px 11px;font-size:12px">Copiar texto</button>
-            <button type="button" class="btn btn-aqua" id="sendWaAndMarkBtn" style="padding:7px 13px;font-size:12px">
-              Enviar WhatsApp y marcar Contactado ↗
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="detail-section" style="padding-bottom:0">
-        <h4>Notas privadas de seguimiento</h4>
-        <div class="notes-box">${esc(c.notes || 'Todavía no hay notas privadas.')}</div>
-      </div>
-    `;
-
-    $('#waTplSelect')?.addEventListener('change', (e) => {
-      const tpl = this.store.templates[Number(e.target.value)];
-      if (tpl) $('#waPitchText').value = this.fillTemplate(tpl.body, c);
-    });
-
-    $('#copyPitchBtn')?.addEventListener('click', async () => {
-      await navigator.clipboard?.writeText($('#waPitchText').value);
-      showToast('Mensaje copiado', 'Listo para pegar en WhatsApp o Instagram DM.');
-    });
-
-    $('#sendWaAndMarkBtn')?.addEventListener('click', () => {
-      const text = $('#waPitchText').value.trim();
-      const url = buildWhatsAppUrl(c.phone, text);
-      if (!url) {
-        showToast('Falta teléfono móvil', 'Este prospecto no tiene número válido para WhatsApp.', true);
-        return;
-      }
-      openExternalUrl(url);
-      if (c.status === 'Pendiente') {
-        this.store.updateStatus(c.id, 'Contactado', 'Propuesta de catálogo enviada por WhatsApp.');
-      }
-      this.openDetail(c.id);
-    });
-
+    renderClientDetailModal(this.store, id, (cid) => this.openDetail(cid));
     $('#detailLayer').classList.add('open');
   }
 }

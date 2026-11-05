@@ -1,4 +1,5 @@
 import { $, $$, ICONS, STAGES, buildWhatsAppUrl, esc, formatDate, initials, norm, openExternalUrl, showToast } from '../core/utils.js';
+import { computeLeadScore } from '../data/project-catalog.js';
 
 export class ClientsView {
   constructor(store, handlers) {
@@ -12,7 +13,7 @@ export class ClientsView {
   }
 
   bindStaticEvents() {
-    ['#search', '#statusFilter', '#provinceFilter', '#socialFilter'].forEach((sel) => {
+    ['#search', '#statusFilter', '#provinceFilter', '#projectFilter', '#socialFilter'].forEach((sel) => {
       $(sel)?.addEventListener(sel === '#search' ? 'input' : 'change', () => this.render());
     });
 
@@ -51,28 +52,39 @@ export class ClientsView {
 
   renderFilters() {
     const provSel = $('#provinceFilter');
-    if (!provSel) return;
-    const current = provSel.value;
-    const provinces = [...new Set(this.store.clients.map((c) => c.province).filter(Boolean))]
-      .sort((a, b) => a.localeCompare(b, 'es'));
-    provSel.innerHTML = `<option value="">Todas las provincias (${provinces.length})</option>` +
-      provinces.map((p) => `<option value="${esc(p)}" ${p === current ? 'selected' : ''}>${esc(p)}</option>`).join('');
+    if (provSel) {
+      const cur = provSel.value;
+      const provinces = [...new Set(this.store.clients.map((c) => c.province).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es'));
+      provSel.innerHTML = `<option value="">Todas las provincias (${provinces.length})</option>` +
+        provinces.map((p) => `<option value="${esc(p)}" ${p === cur ? 'selected' : ''}>${esc(p)}</option>`).join('');
+    }
+    const projSel = $('#projectFilter');
+    if (projSel) {
+      const curP = projSel.value;
+      const titles = [...new Set(this.store.clients.flatMap((c) => (c.projects || []).map((p) => p.title)).filter(Boolean))];
+      projSel.innerHTML = `<option value="">Todos los proyectos</option>` +
+        `<option value="__has__" ${curP === '__has__' ? 'selected' : ''}>Con proyecto solicitado</option>` +
+        `<option value="__none__" ${curP === '__none__' ? 'selected' : ''}>Sin proyecto aún</option>` +
+        titles.map((t) => `<option value="${esc(t)}" ${t === curP ? 'selected' : ''}>📦 ${esc(t)}</option>`).join('');
+    }
   }
 
   getFilteredClients() {
     const q = norm($('#search')?.value || '');
     const st = $('#statusFilter')?.value || '';
     const prov = $('#provinceFilter')?.value || '';
+    const pf = $('#projectFilter')?.value || '';
     const soc = norm($('#socialFilter')?.value || '');
 
     return this.store.clients
       .filter((c) => {
         if (st && c.status !== st) return false;
         if (prov && c.province !== prov) return false;
+        if (pf === '__has__' && !c.desiredProject) return false;
+        if (pf === '__none__' && c.desiredProject) return false;
+        if (pf && pf !== '__has__' && pf !== '__none__' && !(c.projects || []).some((p) => p.title === pf)) return false;
         if (soc && !norm(c.social).includes(soc)) return false;
-        if (q && !norm([c.name, c.contact, c.phone, c.type, c.province, c.address, c.evidence].join(' ')).includes(q)) {
-          return false;
-        }
+        if (q && !norm([c.name, c.contact, c.phone, c.type, c.province, c.desiredProject, c.requirements, c.evidence].join(' ')).includes(q)) return false;
         return true;
       })
       .sort((a, b) => {
@@ -99,7 +111,7 @@ export class ClientsView {
       wrap.innerHTML = `<div class="panel empty-state">
         <div class="empty-art"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M16 11h6"/></svg></div>
         <h2>Tu base comercial está lista para empezar</h2>
-        <p>Importa tu archivo Excel (.xlsx o .csv), carga en 1 clic los 35 negocios verificados de Cuba o añade un cliente manualmente.</p>
+        <p>Importa tu archivo Excel (.xlsx o .csv), carga en 1 clic los 35 negocios verificados de Cuba o añade un cliente con su proyecto.</p>
         <div class="empty-actions">
           <button class="btn btn-aqua" data-action="seed">Cargar 35 prospectos de Cuba</button>
           <button class="btn btn-primary" data-action="import">Importar Excel / CSV</button>
@@ -112,7 +124,6 @@ export class ClientsView {
     if (!list.length) {
       wrap.innerHTML = `<div class="panel empty-state">
         <h2>Sin coincidencias con los filtros actuales</h2>
-        <p>Prueba otra palabra clave o limpia los filtros activos.</p>
         <div class="empty-actions"><button class="btn btn-secondary" data-action="clear-filters">Limpiar filtros</button></div>
       </div>`;
       return this.bindContainerClicks(wrap, list);
@@ -129,31 +140,37 @@ export class ClientsView {
     wrap.innerHTML = `<section class="panel" style="overflow:hidden"><div class="table-wrap"><table>
       <thead><tr>
         <th style="width:36px"><input type="checkbox" id="checkAllRows" ${allChecked ? 'checked' : ''}></th>
-        <th data-sort="name">Negocio / Rubro${arrow('name')}</th>
+        <th data-sort="name">Negocio / Temp.${arrow('name')}</th>
         <th data-sort="province">Provincia${arrow('province')}</th>
-        <th>Contacto</th><th>Teléfono / WhatsApp</th>
+        <th data-sort="desiredProject">Proyecto Solicitado${arrow('desiredProject')}</th>
+        <th>WhatsApp</th>
         <th data-sort="status">Estado${arrow('status')}</th>
         <th data-sort="nextDate">Seguimiento${arrow('nextDate')}</th>
         <th style="text-align:right">Acciones</th>
       </tr></thead>
-      <tbody>${list.map((c) => `<tr data-row-id="${esc(c.id)}">
-        <td data-no-open><input type="checkbox" class="row-check" data-id="${esc(c.id)}" ${this.selectedIds.has(c.id) ? 'checked' : ''}></td>
-        <td><div class="client-cell"><div class="client-initial">${esc(initials(c.name))}</div>
-          <div><div class="client-name">${esc(c.name)}</div><div class="client-sub">${esc(c.type || 'Sin rubro')}${c.social ? ' · ' + esc(c.social) : ''}</div></div>
-        </div></td>
-        <td><div style="font-weight:600">${esc(c.province || '—')}</div><div class="client-sub">${esc(c.address || '')}</div></td>
-        <td><div style="max-width:165px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(c.contact)}">${esc(c.contact || '—')}</div></td>
-        <td style="white-space:nowrap;font-weight:600">${esc(c.phone || '—')}</td>
-        <td data-no-open><select class="status-inline st-${esc(c.status)}" data-status-id="${esc(c.id)}">
-          ${STAGES.map((s) => `<option value="${esc(s.id)}" ${s.id === c.status ? 'selected' : ''}>${esc(s.label)}</option>`).join('')}
-        </select></td>
-        <td>${c.nextDate ? esc(formatDate(c.nextDate)) : '<span style="color:#9aa3b4">Sin fecha</span>'}</td>
-        <td data-no-open><div class="row-actions">
-          <button class="icon-btn wa" data-wa="${esc(c.id)}" title="Escribir por WhatsApp">${ICONS.chat}</button>
-          ${c.evidenceUrl ? `<a class="icon-btn" href="${esc(c.evidenceUrl)}" target="_blank" rel="noopener" title="Ver evidencia FB/IG">${ICONS.link}</a>` : ''}
-          <button class="icon-btn" data-edit="${esc(c.id)}" title="Editar cliente">${ICONS.edit}</button>
-        </div></td>
-      </tr>`).join('')}</tbody>
+      <tbody>${list.map((c) => {
+        const sc = computeLeadScore(c);
+        return `<tr data-row-id="${esc(c.id)}">
+          <td data-no-open><input type="checkbox" class="row-check" data-id="${esc(c.id)}" ${this.selectedIds.has(c.id) ? 'checked' : ''}></td>
+          <td><div class="client-cell"><div class="client-initial">${esc(initials(c.name))}</div>
+            <div><div class="client-name">${esc(c.name)} <span title="${sc.score} pts (${sc.label})">${sc.icon}</span></div><div class="client-sub">${esc(c.type || 'Sin rubro')}${c.contact ? ' · ' + esc(c.contact) : ''}</div></div>
+          </div></td>
+          <td><div style="font-weight:600">${esc(c.province || '—')}</div><div class="client-sub">${esc(c.address || '')}</div></td>
+          <td>${c.desiredProject
+            ? `<div class="proj-pill" title="${esc(c.desiredProject)}">📦 ${esc(c.desiredProject)}</div><div class="client-sub">${c.value ? `${c.value} ${esc(c.currency)} · ${esc(c.projectStage)}` : esc(c.projectStage)}</div>`
+            : `<span style="color:#94a3b8;font-size:12px">+ Clic para asignar</span>`}</td>
+          <td style="white-space:nowrap;font-weight:600">${esc(c.phone || '—')}</td>
+          <td data-no-open><select class="status-inline st-${esc(c.status)}" data-status-id="${esc(c.id)}">
+            ${STAGES.map((s) => `<option value="${esc(s.id)}" ${s.id === c.status ? 'selected' : ''}>${esc(s.label)}</option>`).join('')}
+          </select></td>
+          <td>${c.nextDate ? esc(formatDate(c.nextDate)) : '<span style="color:#9aa3b4">Sin fecha</span>'}</td>
+          <td data-no-open><div class="row-actions">
+            <button class="icon-btn wa" data-wa="${esc(c.id)}" title="Escribir por WhatsApp">${ICONS.chat}</button>
+            ${c.evidenceUrl ? `<a class="icon-btn" href="${esc(c.evidenceUrl)}" target="_blank" rel="noopener" title="Ver evidencia FB/IG">${ICONS.link}</a>` : ''}
+            <button class="icon-btn" data-edit="${esc(c.id)}" title="Editar cliente y proyecto">${ICONS.edit}</button>
+          </div></td>
+        </tr>`;
+      }).join('')}</tbody>
     </table></div></section>`;
   }
 
@@ -169,6 +186,7 @@ export class ClientsView {
         ${cards.map((c) => `<article class="kanban-card" draggable="true" data-drag-id="${esc(c.id)}" data-row-id="${esc(c.id)}">
           <h4>${esc(c.name)}</h4>
           <p>${esc(c.province || 'Cuba')} · ${esc(c.type || 'Negocio')}</p>
+          ${c.desiredProject ? `<div class="proj-pill" style="margin:4px 0">📦 ${esc(c.desiredProject)}${c.value ? ` · $${c.value}` : ''}</div>` : ''}
           <div class="kanban-foot">
             <span style="color:#4a566d;font-weight:600">${esc(c.phone || 'Sin tel.')}</span>
             <button class="icon-btn wa" data-wa="${esc(c.id)}" title="WhatsApp">${ICONS.chat}</button>
@@ -211,7 +229,7 @@ export class ClientsView {
         if (act === 'import') this.handlers.goto('import');
         if (act === 'new') this.handlers.openForm();
         if (act === 'clear-filters') {
-          ['#search', '#statusFilter', '#provinceFilter', '#socialFilter'].forEach((s) => { $(s).value = ''; });
+          ['#search', '#statusFilter', '#provinceFilter', '#projectFilter', '#socialFilter'].forEach((s) => { if ($(s)) $(s).value = ''; });
           this.render();
         }
         return;

@@ -130,11 +130,11 @@ jobs:
           find artifacts -type f \( -name "*.apk" -o -name "*.exe" \) -exec cp {} release-files/ \;
           ls -lh release-files/
 
-      - name: Publicar en GitHub Releases (v1.0.0)
+      - name: Publicar en GitHub Releases (v1.1.0)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: "Brújula CRM v1.0.0 · Android (.apk) y Windows PC (.exe)"
+          tag_name: v1.1.0
+          name: "Brújula CRM v1.1.0 · Proyectos por Cliente, Cotizador, APK y PC (.exe)"
           body: |
             ### Instaladores compilados automáticamente por GitHub Actions
             - **Android (Teléfono / Tablet):** Descarga e instala `Brujula-CRM-Android.apk`.

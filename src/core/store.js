@@ -1,32 +1,18 @@
 import { cryptoId, norm, normalizeStatus, phoneKey } from './utils.js';
+import { DEFAULT_SERVICES } from '../data/project-catalog.js';
+import { DEFAULT_TEMPLATES, sanitizeClient, sanitizeProject } from './models.js';
 
 const DB_KEY = 'brujula-clientes-v1';
 const LOG_KEY = 'brujula-actividad-v1';
 const TPL_KEY = 'brujula-plantillas-v1';
-
-export const DEFAULT_TEMPLATES = [
-  {
-    id: 'primer_contacto',
-    name: '1er Contacto · Propuesta de Catálogo',
-    body: '¡Hola {contacto}! Vi su negocio *{negocio}* en {provincia} ({rubro}) y me encantó lo que ofrecen. Noté que aún reciben pedidos directos por chat sin un catálogo digital interactivo. Diseño catálogos rápidos donde sus clientes eligen productos y el pedido llega listo a su WhatsApp. ¿Les gustaría ver una muestra sin compromiso?'
-  },
-  {
-    id: 'envio_demo',
-    name: 'Envío de Demo / Muestra',
-    body: '¡Hola {contacto}! Preparé una vista previa de cómo se vería el catálogo digital de *{negocio}* con sus productos organizados y carrito directo al WhatsApp. ¿Le comparto el enlace para que lo pruebe desde el móvil?'
-  },
-  {
-    id: 'seguimiento',
-    name: 'Seguimiento cordial',
-    body: '¡Hola {contacto}! Paso por aquí rápido para saber si pudieron revisar la propuesta del catálogo digital para *{negocio}*. Esta semana tengo cupo para dejarlo configurado con sus fotos y precios. ¡Quedo atento!'
-  }
-];
+const SVC_KEY = 'brujula-servicios-v1';
 
 class CRMStore {
   constructor() {
     this.clients = [];
     this.activities = [];
     this.templates = [...DEFAULT_TEMPLATES];
+    this.services = [...DEFAULT_SERVICES];
     this.lastSnapshot = null;
     this.listeners = new Set();
     this.load();
@@ -43,29 +29,28 @@ class CRMStore {
 
   load() {
     try {
+      const svcs = JSON.parse(localStorage.getItem(SVC_KEY) || 'null');
+      if (Array.isArray(svcs) && svcs.length) this.services = svcs;
+    } catch { this.services = [...DEFAULT_SERVICES]; }
+    try {
       const raw = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
-      this.clients = Array.isArray(raw) ? raw.map((c) => this.sanitizeClient(c)) : [];
-    } catch {
-      this.clients = [];
-    }
+      this.clients = Array.isArray(raw) ? raw.map((c) => sanitizeClient(c, this.services)) : [];
+    } catch { this.clients = []; }
     try {
       const logs = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
-      this.activities = Array.isArray(logs) ? logs.slice(0, 60) : [];
-    } catch {
-      this.activities = [];
-    }
+      this.activities = Array.isArray(logs) ? logs.slice(0, 70) : [];
+    } catch { this.activities = []; }
     try {
       const tpls = JSON.parse(localStorage.getItem(TPL_KEY) || 'null');
       if (Array.isArray(tpls) && tpls.length) this.templates = tpls;
-    } catch {
-      this.templates = [...DEFAULT_TEMPLATES];
-    }
+    } catch { this.templates = [...DEFAULT_TEMPLATES]; }
   }
 
   save() {
     localStorage.setItem(DB_KEY, JSON.stringify(this.clients));
-    localStorage.setItem(LOG_KEY, JSON.stringify(this.activities.slice(0, 60)));
+    localStorage.setItem(LOG_KEY, JSON.stringify(this.activities.slice(0, 70)));
     localStorage.setItem(TPL_KEY, JSON.stringify(this.templates));
+    localStorage.setItem(SVC_KEY, JSON.stringify(this.services));
     this.notify();
   }
 
@@ -82,37 +67,9 @@ class CRMStore {
     return true;
   }
 
-  sanitizeClient(raw) {
-    const now = new Date().toISOString();
-    return {
-      id: raw.id || cryptoId(),
-      name: String(raw.name || '').trim(),
-      province: String(raw.province || '').trim(),
-      address: String(raw.address || '').trim(),
-      type: String(raw.type || '').trim(),
-      contact: String(raw.contact || '').trim(),
-      phone: String(raw.phone || '').trim(),
-      social: String(raw.social || '').trim(),
-      status: normalizeStatus(raw.status),
-      value: Number(raw.value || 0) || 0,
-      nextDate: String(raw.nextDate || '').trim(),
-      evidenceUrl: String(raw.evidenceUrl || '').trim(),
-      evidence: String(raw.evidence || '').trim(),
-      catalogCheck: String(raw.catalogCheck || 'NO está (Verificado)').trim(),
-      notes: String(raw.notes || '').trim(),
-      createdAt: raw.createdAt || now,
-      updatedAt: raw.updatedAt || now
-    };
-  }
-
   logActivity(subject, action) {
-    this.activities.unshift({
-      id: cryptoId('log'),
-      subject,
-      action,
-      at: new Date().toISOString()
-    });
-    if (this.activities.length > 60) this.activities.length = 60;
+    this.activities.unshift({ id: cryptoId('log'), subject, action, at: new Date().toISOString() });
+    if (this.activities.length > 70) this.activities.length = 70;
   }
 
   getById(id) {
@@ -122,22 +79,129 @@ class CRMStore {
   upsertOne(data) {
     this.saveSnapshot();
     const existing = data.id ? this.getById(data.id) : null;
-    const clean = this.sanitizeClient({
+    let projects = existing?.projects ? [...existing.projects] : [];
+
+    if (data.primaryProjectTitle !== undefined) {
+      const title = String(data.primaryProjectTitle || '').trim();
+      if (title) {
+        const svc = this.services.find((s) => norm(s.name) === norm(title));
+        const first = projects[0];
+        const updatedFirst = sanitizeProject({
+          ...first,
+          serviceId: svc?.id || first?.serviceId || '',
+          title,
+          stage: data.projectStage || first?.stage || 'Solicitado',
+          price: data.value ?? first?.price ?? svc?.price ?? 0,
+          paid: data.paid ?? first?.paid ?? 0,
+          currency: data.currency || first?.currency || 'USD',
+          deadline: data.projectDeadline ?? first?.deadline ?? '',
+          notes: data.requirements ?? first?.notes ?? '',
+          checklist: first?.checklist?.length ? first.checklist : (svc?.deliverables || []).map((t) => ({ text: t, done: false }))
+        });
+        projects = [updatedFirst, ...projects.slice(1)];
+      }
+    }
+
+    const clean = sanitizeClient({
       ...existing,
       ...data,
+      projects,
       id: existing?.id || cryptoId(),
       createdAt: existing?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
-    });
+    }, this.services);
+
     if (existing) {
       this.clients = this.clients.map((c) => (c.id === clean.id ? clean : c));
-      this.logActivity(clean.name, `Ficha actualizada (${clean.status})`);
+      this.logActivity(clean.name, `Ficha actualizada (${clean.desiredProject || clean.status})`);
     } else {
       this.clients.unshift(clean);
-      this.logActivity(clean.name, 'Nuevo cliente añadido');
+      this.logActivity(clean.name, `Nuevo cliente${clean.desiredProject ? ' · ' + clean.desiredProject : ''}`);
     }
     this.save();
     return { client: clean, isEdit: Boolean(existing) };
+  }
+
+  saveClientProject(clientId, projData) {
+    const c = this.getById(clientId);
+    if (!c) return null;
+    this.saveSnapshot();
+    const svc = this.services.find((s) => s.id === projData.serviceId || norm(s.name) === norm(projData.title));
+    const idx = c.projects.findIndex((p) => p.id === projData.id);
+    const prev = idx >= 0 ? c.projects[idx] : null;
+    const proj = sanitizeProject({
+      ...prev,
+      ...projData,
+      checklist: projData.checklist ?? prev?.checklist ?? (svc?.deliverables || []).map((t) => ({ text: t, done: false }))
+    });
+
+    const nextProjects = [...c.projects];
+    if (idx >= 0) nextProjects[idx] = proj;
+    else nextProjects.push(proj);
+
+    if (proj.stage === 'Entregado' && c.status !== 'Convertido') c.status = 'Convertido';
+    else if (proj.stage === 'Cotizado' && c.status === 'Pendiente') c.status = 'Propuesta';
+
+    const updated = sanitizeClient({ ...c, projects: nextProjects, updatedAt: new Date().toISOString() }, this.services);
+    this.clients = this.clients.map((x) => (x.id === clientId ? updated : x));
+    this.logActivity(c.name, `Proyecto "${proj.title}" (${proj.stage})`);
+    this.save();
+    return proj;
+  }
+
+  removeClientProject(clientId, projId) {
+    const c = this.getById(clientId);
+    if (!c) return;
+    this.saveSnapshot();
+    const next = c.projects.filter((p) => p.id !== projId);
+    const updated = sanitizeClient({ ...c, projects: next, desiredProject: '', value: 0, paid: 0, updatedAt: new Date().toISOString() }, this.services);
+    this.clients = this.clients.map((x) => (x.id === clientId ? updated : x));
+    this.logActivity(c.name, 'Proyecto retirado de la ficha');
+    this.save();
+  }
+
+  toggleProjectChecklist(clientId, projId, itemIdx) {
+    const c = this.getById(clientId);
+    const p = c?.projects.find((x) => x.id === projId);
+    if (!p || !p.checklist[itemIdx]) return;
+    p.checklist[itemIdx].done = !p.checklist[itemIdx].done;
+    c.updatedAt = new Date().toISOString();
+    this.save();
+  }
+
+  scheduleQuickFollowup(clientId, daysOffset) {
+    const c = this.getById(clientId);
+    if (!c) return null;
+    const d = new Date();
+    d.setDate(d.getDate() + Number(daysOffset || 0));
+    c.nextDate = d.toISOString().slice(0, 10);
+    c.updatedAt = new Date().toISOString();
+    this.logActivity(c.name, `Seguimiento agendado para ${c.nextDate}`);
+    this.save();
+    return c.nextDate;
+  }
+
+  upsertService(svc) {
+    const clean = {
+      id: svc.id || cryptoId('svc'),
+      name: String(svc.name || '').trim(),
+      category: String(svc.category || 'Servicio').trim(),
+      price: Math.max(0, Number(svc.price || 0) || 0),
+      currency: String(svc.currency || 'USD').trim(),
+      deliveryDays: Math.max(1, Number(svc.deliveryDays || 3) || 3),
+      summary: String(svc.summary || '').trim(),
+      deliverables: Array.isArray(svc.deliverables) ? svc.deliverables.filter(Boolean) : String(svc.deliverables || '').split('\n').map((s) => s.trim()).filter(Boolean)
+    };
+    const exists = this.services.some((s) => s.id === clean.id);
+    this.services = exists ? this.services.map((s) => (s.id === clean.id ? clean : s)) : [clean, ...this.services];
+    this.logActivity('Catálogo', `${exists ? 'Editado' : 'Añadido'} paquete "${clean.name}"`);
+    this.save();
+    return clean;
+  }
+
+  deleteService(id) {
+    this.services = this.services.filter((s) => s.id !== id);
+    this.save();
   }
 
   updateStatus(id, status, extraNote = '') {
@@ -159,16 +223,9 @@ class CRMStore {
     const set = new Set(ids);
     let count = 0;
     this.clients.forEach((c) => {
-      if (set.has(c.id)) {
-        c.status = normalizeStatus(status);
-        c.updatedAt = new Date().toISOString();
-        count++;
-      }
+      if (set.has(c.id)) { c.status = normalizeStatus(status); c.updatedAt = new Date().toISOString(); count++; }
     });
-    if (count) {
-      this.logActivity(`${count} clientes`, `Movidos en lote a ${status}`);
-      this.save();
-    }
+    if (count) { this.logActivity(`${count} clientes`, `Movidos en lote a ${status}`); this.save(); }
     return count;
   }
 
@@ -178,42 +235,33 @@ class CRMStore {
     const before = this.clients.length;
     this.clients = this.clients.filter((c) => !set.has(c.id));
     const removed = before - this.clients.length;
-    if (removed) {
-      this.logActivity(`${removed} registro(s)`, 'Eliminados de la base');
-      this.save();
-    }
+    if (removed) { this.logActivity(`${removed} registro(s)`, 'Eliminados de la base'); this.save(); }
     return removed;
   }
 
   importBatch(records, sourceLabel = 'Tabla importada') {
     this.saveSnapshot();
-    let added = 0;
-    let updated = 0;
+    let added = 0, updated = 0;
     records.forEach((raw) => {
-      const incoming = this.sanitizeClient(raw);
+      const incoming = sanitizeClient(raw, this.services);
       if (!incoming.name) return;
       const inPhone = phoneKey(incoming.phone);
       const match = this.clients.find((c) => {
         const cPhone = phoneKey(c.phone);
-        if (inPhone && cPhone && inPhone === cPhone) return true;
-        return norm(c.name) === norm(incoming.name) && norm(c.province) === norm(incoming.province);
+        return (inPhone && cPhone && inPhone === cPhone) || (norm(c.name) === norm(incoming.name) && norm(c.province) === norm(incoming.province));
       });
       if (match) {
-        Object.assign(match, {
+        Object.assign(match, sanitizeClient({
           ...incoming,
           id: match.id,
           status: match.status !== 'Pendiente' ? match.status : incoming.status,
+          projects: match.projects?.length ? match.projects : incoming.projects,
           notes: match.notes || incoming.notes,
-          value: match.value || incoming.value,
           nextDate: match.nextDate || incoming.nextDate,
-          createdAt: match.createdAt,
-          updatedAt: new Date().toISOString()
-        });
+          createdAt: match.createdAt
+        }, this.services));
         updated++;
-      } else {
-        this.clients.push(incoming);
-        added++;
-      }
+      } else { this.clients.push(incoming); added++; }
     });
     this.logActivity(sourceLabel, `${added} añadidos · ${updated} actualizados`);
     this.save();

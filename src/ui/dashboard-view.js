@@ -5,18 +5,19 @@ export function renderDashboard(store, handlers) {
   const total = clients.length;
   const countBy = (st) => clients.filter((c) => c.status === st).length;
   const activeProvinces = new Set(clients.map((c) => c.province).filter(Boolean));
+  const totalProjects = clients.reduce((acc, c) => acc + (c.projects?.length || 0), 0);
+  const totalQuoted = clients.reduce((acc, c) => acc + Number(c.value || 0), 0);
 
   $('#mTotal').textContent = total;
   $('#mPending').textContent = countBy('Pendiente');
   $('#mContacted').textContent = countBy('Contactado');
-  $('#mFollowup').textContent = countBy('Seguimiento') + countBy('Propuesta');
+  $('#mProjects').textContent = totalProjects;
+  $('#mProjectsNote').textContent = totalQuoted ? `$${totalQuoted.toLocaleString('es-ES')} cotizados` : 'pedidos por clientes';
   $('#mConverted').textContent = countBy('Convertido');
   $('#mProvinces').textContent = `${activeProvinces.size}/16`;
 
   const banner = $('#seedBanner');
-  if (banner) {
-    banner.style.display = total === 0 ? 'flex' : 'none';
-  }
+  if (banner) banner.style.display = total === 0 ? 'flex' : 'none';
 
   // Embudo comercial
   const maxStage = Math.max(total, 1);
@@ -56,7 +57,7 @@ export function renderDashboard(store, handlers) {
     if (chip) handlers.filterByProvince(chip.dataset.prov);
   };
 
-  // Seguimientos próximos + Actividad reciente
+  // Seguimientos próximos
   const todayIso = new Date().toISOString().slice(0, 10);
   const upcoming = clients
     .filter((c) => c.nextDate && c.status !== 'Convertido' && c.status !== 'Descartado')
@@ -72,7 +73,7 @@ export function renderDashboard(store, handlers) {
             <div class="activity-row" data-open-id="${esc(c.id)}" style="cursor:pointer">
               <div class="avatar" style="${overdue ? 'background:#fceaea;color:#a94449' : ''}">${esc(initials(c.name))}</div>
               <div>
-                <p><b>${esc(c.name)}</b> · ${esc(c.province || 'Cuba')}</p>
+                <p><b>${esc(c.name)}</b>${c.desiredProject ? ` · 📦 ${esc(c.desiredProject)}` : ` · ${esc(c.province || 'Cuba')}`}</p>
                 <time style="${overdue ? 'color:#b43e44;font-weight:700' : ''}">
                   ${overdue ? 'Vencido: ' : 'Programado: '}${esc(formatDate(c.nextDate))}
                 </time>
@@ -80,7 +81,7 @@ export function renderDashboard(store, handlers) {
             </div>
           `;
         }).join('')
-      : `<div style="padding:18px 4px;color:var(--muted);font-size:12px">No tienes seguimientos con fecha pendiente. Asigna fechas en cualquier ficha para recibir alertas aquí.</div>`;
+      : `<div style="padding:18px 4px;color:var(--muted);font-size:12px">No tienes seguimientos pendientes. Abre un cliente y usa "+1d / +3d / +7d" para agendar rápido.</div>`;
 
     followEl.onclick = (e) => {
       const row = e.target.closest('[data-open-id]');

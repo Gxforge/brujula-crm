@@ -9,6 +9,12 @@ const EXPORT_COLUMNS = [
   ['phone', 'Teléfono / WhatsApp'],
   ['social', 'Red Social'],
   ['status', 'Estado de Gestión'],
+  ['desiredProject', 'Proyecto Solicitado'],
+  ['projectStage', 'Fase del Proyecto'],
+  ['value', 'Presupuesto Total'],
+  ['paid', 'Abonado'],
+  ['currency', 'Moneda'],
+  ['requirements', 'Requisitos del Proyecto'],
   ['nextDate', 'Próximo Seguimiento'],
   ['evidenceUrl', 'Link de Evidencia (FB / IG)'],
   ['evidence', 'Evidencia Detectada (Bio / Publicación)'],
@@ -208,9 +214,10 @@ export function exportClientsXLSX(clients) {
 
 export function exportFullBackupJSON(store) {
   const payload = {
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     clients: store.clients,
+    services: store.services,
     activities: store.activities,
     templates: store.templates
   };
