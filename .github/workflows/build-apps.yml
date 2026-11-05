@@ -41,6 +41,7 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm run prepare:web
+          npm run test:pc-smoke
           npx --yes esbuild src/main.js --bundle --format=esm --outfile=/tmp/brujula-smoke.js
 
       - name: Generar proyecto Android con Capacitor
@@ -104,6 +105,7 @@ jobs:
       - name: Instalar dependencias y compilar .exe
         run: |
           npm install --no-audit --no-fund
+          npm run test:pc-smoke
           npm run build:pc
 
       - name: Subir artefactos PC Windows (.exe)
@@ -132,15 +134,15 @@ jobs:
           find artifacts -type f \( -name "*.apk" -o -name "*.exe" \) -exec cp {} release-files/ \;
           ls -lh release-files/
 
-      - name: Publicar en GitHub Releases (v1.4.2)
+      - name: Publicar en GitHub Releases (v1.4.3)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.4.2
-          name: "Brújula CRM v1.4.2 · Android corregido · JS bundle validado · Base vacía"
+          tag_name: v1.4.3
+          name: "Brújula CRM v1.4.3 · PC smoke tests · Android corregido · Base vacía"
           body: |
             ### Instaladores compilados automáticamente por GitHub Actions
             - **Corrección Android:** arreglado error de sintaxis que impedía inicializar los botones; corregido panel de sincronización.
-            - **Validación CI:** esbuild analiza y empaqueta el módulo principal antes de compilar el APK.
+            - **Validación CI:** smoke test funcional de navegación, alta y persistencia; esbuild empaqueta el módulo principal.
             - **Android (Teléfono / Tablet):** Descarga e instala `Brujula-CRM-Android.apk`.
             - **PC Windows (Portable sin instalación):** Abre directamente `Brujula-CRM-PC-Portable.exe`.
             - **PC Windows (Instalador completo):** Ejecuta `Brujula-CRM-PC-Setup.exe` para crear accesos directos en Escritorio e Inicio.
