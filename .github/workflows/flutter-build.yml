@@ -52,7 +52,9 @@ jobs:
           PY
           cd /tmp/brujula_shell
           rm -rf test
+          cp -R "$GITHUB_WORKSPACE/flutter_app/test" .
           flutter pub get
+          flutter test
           flutter analyze
           flutter build apk --release
       - uses: actions/upload-artifact@v4
@@ -76,7 +78,9 @@ jobs:
           Copy-Item flutter_app\pubspec.yaml $env:TEMP\brujula_shell\pubspec.yaml -Force
           Set-Location $env:TEMP\brujula_shell
           Remove-Item test -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item $env:GITHUB_WORKSPACE\flutter_app\test .\test -Recurse -Force
           flutter pub get
+          flutter test
           flutter analyze
           flutter build windows --release
           Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath $env:GITHUB_WORKSPACE\Brujula-Flutter-Windows.zip -Force

@@ -18,6 +18,7 @@ flutter run
 - Inicio vacío; no importa ni precarga los datos de ejemplo de la app antigua.
 - Selección/copias accidentales de texto desactivadas a nivel de interfaz.
 - Clientes y proyectos: alta, edición, búsqueda y eliminación, con persistencia local vacía de fábrica.
+- Preserva campos de clientes del CRM anterior aún no migrados para evitar perder detalles al sincronizar versiones.
 - Importación/exportación de clientes en XLSX con mapeo básico de encabezados.
 - Tema claro/oscuro/sistema persiste; selección accidental de texto desactivada.
 - Cuenta de sincronización con registro/inicio de sesión y token guardado en almacén seguro. La API Worker incorpora cuentas aisladas por usuario, hash de contraseña PBKDF2 y sincronización de clientes/proyectos por última actualización.

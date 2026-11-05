@@ -7,6 +7,7 @@ import '../projects/project_repository.dart';
 import '../clients/client_record.dart';
 import '../projects/project_record.dart';
 import 'sync_service.dart';
+import 'sync_scheduler.dart';
 import 'theme_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -22,11 +23,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final projectRepo = ProjectRepository();
   final email = TextEditingController();
   final password = TextEditingController();
-  bool createAccount = false, busy = false, signedIn = false, obscure = true;
+  bool createAccount = false, busy = false, signedIn = false, obscure = true, autoSync = false;
   String? currentEmail;
   @override
   void initState() { super.initState(); _loadSession(); }
-  Future<void> _loadSession() async { final yes = await sync.signedIn; final address = await sync.email; if (mounted) setState(() { signedIn = yes; currentEmail = address; }); }
+  Future<void> _loadSession() async { final yes = await sync.signedIn; final address = await sync.email; await SyncScheduler.instance.initialize(); if (mounted) setState(() { signedIn = yes; currentEmail = address; autoSync = SyncScheduler.instance.enabled; }); }
   @override
   void dispose() { email.dispose(); password.dispose(); super.dispose(); }
   Future<void> _authenticate() async {
@@ -42,7 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     catch (e) { _message(e.toString().replaceFirst('Exception: ', '')); }
     finally { if (mounted) setState(() => busy = false); }
   }
-  Future<void> _logout() async { setState(() => busy = true); await sync.signOut(); if (mounted) { setState(() { signedIn = false; currentEmail = null; busy = false; }); _message('Sesión cerrada.'); } }
+  Future<void> _logout() async { setState(() => busy = true); await sync.signOut(); await SyncScheduler.instance.setEnabled(false); if (mounted) { setState(() { signedIn = false; currentEmail = null; autoSync = false; busy = false; }); _message('Sesión cerrada.'); } }
   void _message(String text) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text))); }
   Future<void> _backupExport() async {
     try {
@@ -79,7 +80,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       const SizedBox(height: 14),
       if (signedIn) ...[
         Row(children: [const Icon(Icons.cloud_done_outlined, color: Colors.green), const SizedBox(width: 9), Expanded(child: Text(currentEmail ?? 'Sesión iniciada'))]),
-        const SizedBox(height: 14),
+        SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Sincronizar automáticamente'), subtitle: const Text('Al volver a abrir la app y cada 5 minutos mientras esté activa.'), value: autoSync, onChanged: busy ? null : (value) async { setState(() => autoSync = value); await SyncScheduler.instance.setEnabled(value); }),
+        const SizedBox(height: 8),
         Wrap(spacing: 10, runSpacing: 8, children: [FilledButton.icon(onPressed: busy ? null : _synchronize, icon: busy ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.sync), label: Text(busy ? 'Conectando…' : 'Sincronizar ahora')), OutlinedButton.icon(onPressed: busy ? null : _logout, icon: const Icon(Icons.logout), label: const Text('Cerrar sesión'))]),
       ] else ...[
         TextField(controller: email, keyboardType: TextInputType.emailAddress, autofillHints: const [AutofillHints.email], decoration: const InputDecoration(labelText: 'Correo electrónico', prefixIcon: Icon(Icons.mail_outline))),

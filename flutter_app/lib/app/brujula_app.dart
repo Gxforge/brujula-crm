@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../features/home/home_screen.dart';
 import '../features/settings/theme_controller.dart';
+import '../features/settings/sync_scheduler.dart';
 
 class BrujulaApp extends StatefulWidget {
   const BrujulaApp({super.key});
@@ -8,7 +9,24 @@ class BrujulaApp extends StatefulWidget {
   State<BrujulaApp> createState() => _BrujulaAppState();
 }
 
-class _BrujulaAppState extends State<BrujulaApp> {
+class _BrujulaAppState extends State<BrujulaApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    SyncScheduler.instance.initialize();
+  }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) SyncScheduler.instance.synchronize();
+  }
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    SyncScheduler.instance.dispose();
+    theme.dispose();
+    super.dispose();
+  }
   final theme = ThemeController();
   @override
   Widget build(BuildContext context) => SelectionContainer.disabled(child: AnimatedBuilder(
